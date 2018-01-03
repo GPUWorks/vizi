@@ -8,6 +8,7 @@ CFLAGS=-g -Wall -fpic -Ic_src/pugl -Ic_src/nanovg/src -I$(ERLANG_PATH) -DPUGL_HA
 LDFLAGS=-g -shared -lX11 -lm -lGL -lGLEW
 
 $(BIN_DIR)/vz_nif.so: $(OBJECTS)
+	mkdir -p priv
 	$(CC) -o $@ $^ $(CFLAGS) $(LDFLAGS)
 
 %.o: %.c
