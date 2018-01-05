@@ -175,8 +175,15 @@ defmodule Vizi.View do
     GenServer.cast(server, %Events.Custom{type: type, params: params, time: time})
   end
 
-  @spec redraw(ctx :: context) :: :ok
-  defdelegate redraw(ctx), to: NIF
+  @spec redraw(server :: GenServer.server) :: :ok
+  def redraw(server) do
+    GenServer.cast(server, :vz_redraw)
+  end
+
+  @spec redraw() :: :ok
+  def redraw() do
+    GenServer.cast(self(), :vz_redraw)
+  end
 
   # GenServer implementation
 
@@ -213,6 +220,12 @@ defmodule Vizi.View do
       NIF.send_wakeup_event(state.context)
     end
     {:noreply, %{state|custom_events: [%{ev|context: state.context} | state.custom_events]}}
+  end
+
+  def handle_cast(:vz_redraw, state) do
+    NIF.redraw(state.context)
+    NIF.send_wakeup_event(state.context)
+    {:noreply, state}
   end
 
   @doc false

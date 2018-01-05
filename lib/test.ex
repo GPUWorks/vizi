@@ -6,22 +6,22 @@ defmodule TestC1 do
   use Vizi.Canvas
 
   def create(opts) do
-    Vizi.Element.create(__MODULE__, %{img: nil, bm: nil, cnt: 0}, opts)
+    Vizi.Element.create(__MODULE__, %{img: nil, bm: nil, cnt: 1}, opts)
   end
 
-  def init(c, ctx) do
+  def init(ctx, state) do
     bm = Bitmap.create(500, 300)
     Enum.each(0..(Bitmap.size(bm) - 1), fn n ->
       Bitmap.put(bm, n, rem(n, 256), 255 - rem(n, 256), 0, 255)
     end)
     img = Image.from_bitmap(ctx, bm)
-    c = put_in(c.state.img, img)
-    {:ok, put_in(c.state.bm, bm)}
+    state = put_in(state.img, img)
+    {:ok, put_in(state.bm, bm)}
   end
 
   def draw(ctx, width, height, state) do
-#    img = Image.create(ctx, "c_src/nanovg/example/images/image#{state.cnt}.jpg", [:repeat_x, :repeat_y])
-    paint = Paint.image_pattern(ctx, 0, 0, 100, 100, 45, state.img)
+    img = Image.create(ctx, "c_src/nanovg/example/images/image#{state.cnt}.jpg", [:repeat_x, :repeat_y])
+    paint = Paint.image_pattern(ctx, 0, 0, 100, 100, 45, img)
 
     ctx
     |> begin_path()
@@ -35,16 +35,17 @@ defmodule TestC1 do
     IO.inspect ev
     :done
   end
-  def handle_event(_c, %Events.Button{type: :button_release, context: ctx}) do
-    Vizi.View.redraw(ctx)
+  def handle_event(_c, %Events.Button{type: :button_release}) do
+    Vizi.View.redraw()
     :done
   end
 
   def handle_event(c, %Events.Motion{} = ev) do
     #IO.puts "TestC1 received event: #{inspect ev}"
-    [c2, c3] = c.children
-    c2 = %{c2|x: ev.x, y: ev.y}
-    {:done, %{c|children: [c2, c3]}}
+    c = Vizi.Element.update_any(c, :a, fn el ->
+      %{el|x: ev.x, y: ev.y}
+    end)
+    {:done, c}
   end
 #    bm = el.state.bm
     #t1 = :os.timestamp
@@ -153,11 +154,11 @@ defmodule TestView do
   use Vizi.View
 
   def start do
-    {:ok, _pid} = Vizi.View.start_link(__MODULE__, nil, redraw_mode: :interval, frame_rate: 60)
+    {:ok, _pid} = Vizi.View.start_link(__MODULE__, nil, redraw_mode: :manual, frame_rate: 60)
   end
 
   def init(_args) do
-    root = TestC2.create(x: 100, y: 100, width: 500, height: 300, children:
+    root = TestC1.create(x: 100, y: 100, width: 500, height: 300, children:
       for n <- 1..100 do
         TestC2.create(x: n + 100, y: n + 100, width: 100, height: 100, alpha: 0.3, tags: [:a, :b])
       end
