@@ -8,7 +8,7 @@ defmodule Vizi.Element do
             scale_x: 1.0, scale_y: 1.0,
             skew_x: 0.0, skew_y: 0.0,
             rotate: 0.0, alpha: 1.0,
-            mod: nil, state: nil,
+            mod: nil, params: %{},
             initialized: false,
             xform: nil
 
@@ -20,12 +20,14 @@ defmodule Vizi.Element do
     scale_x: number, scale_y: number,
     skew_x: number, skew_y: number,
     rotate: number, alpha: number,
-    mod: module | nil, state: term,
+    mod: module | nil, params: params,
     initialized: boolean,
     xform: Vizi.Canvas.Transform.t | nil
   }
 
   @type tag :: term
+
+  @type params :: %{optional(atom) => term}
 
   @typedoc "Option values used by `create/3`"
   @type option :: {:tags, [tag]} |
@@ -42,7 +44,7 @@ defmodule Vizi.Element do
                   {:alpha, number} |
                   {:x, number} |
                   {:mod, module} |
-                  {:state, term}
+                  {:params, params}
 
 
 
@@ -62,7 +64,7 @@ defmodule Vizi.Element do
 
 
   """
-  @callback draw(ctx :: Vizi.View.context, width :: number, height :: number, state :: term) :: term
+  @callback draw(ctx :: Vizi.View.context, width :: number, height :: number, params :: params) :: term
 
   @callback handle_event(el :: Vizi.Element.t, event :: struct) ::
   :cont | :done |
@@ -85,7 +87,7 @@ defmodule Vizi.Element do
       end
 
       @doc false
-      def draw(_width, _height, _ctx, _state) do
+      def draw(_params, _width, _height, _ctx) do
         :ok
       end
 
@@ -101,8 +103,8 @@ defmodule Vizi.Element do
 
   # Public interface
 
-  @spec create(mod :: module, state :: term, opts :: options) :: t
-  def create(mod, state, opts \\ []) do
+  @spec create(mod :: module, params :: params, opts :: options) :: t
+  def create(mod, params, opts \\ []) do
     %Element{
       tags: Keyword.get(opts, :tags, []),
       x: Keyword.get(opts, :x, 0.0),
@@ -117,7 +119,7 @@ defmodule Vizi.Element do
       rotate: Keyword.get(opts, :rotate, 0.0),
       alpha: Keyword.get(opts, :alpha, 1.0),
       mod: mod,
-      state: state
+      params: params
     }
   end
 
@@ -219,6 +221,35 @@ defmodule Vizi.Element do
     %Element{parent|children: children}
   end
 
+  @spec put_param(el :: t, key :: atom, value :: term) :: t
+  def put_param(%Element{params: params} = el, key, value) do
+    %Element{el|params: Map.put(params, key, value)}
+  end
+
+  @spec put_params(el :: t, params :: params) :: t
+  def put_params(%Element{} = el, params) do
+    %Element{el|params: Map.merge(el.params, params)}
+  end
+
+  @spec update_param(el :: t, key :: atom, initial :: term, fun :: (term -> term)) :: t
+  def update_param(%Element{params: params} = el, key, initial, fun) do
+    %Element{el|params: Map.update(params, key, initial, fun)}
+  end
+
+  @spec update_param!(el :: t, key :: atom, fun :: (term -> term)) :: t
+  def update_param!(%Element{params: params} = el, key, fun) do
+    %Element{el|params: Map.update!(params, key, fun)}
+  end
+
+  @spec update_params!(el :: t, updates :: [{atom, (term -> term)}]) :: t
+  def update_params!(%Element{params: params} = el, updates) do
+    params = Enum.reduce(updates, params, fn {key, fun}, acc ->
+      Map.update!(acc, key, fun)
+    end)
+    %Element{el|params: params}
+  end
+
+
   # Internals
 
   @doc false
@@ -233,7 +264,7 @@ defmodule Vizi.Element do
     end
 
     NIF.setup_element(ctx, el)
-    mod.draw(width, height, ctx, el.state)
+    mod.draw(el.params, width, height, ctx)
     children = draw(children, ctx)
     NIF.restore(ctx)
     %Element{el|children: children}

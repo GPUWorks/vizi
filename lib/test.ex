@@ -15,18 +15,18 @@ defmodule TestC1 do
       Bitmap.put(bm, n, rem(n, 256), 255 - rem(n, 256), 0, 255)
     end)
     img = Image.from_bitmap(ctx, bm)
-    el = put_in(el.state.img, img)
-    {:ok, put_in(el.state.bm, bm)}
+    el = put_in(el.params.img, img)
+    {:ok, put_in(el.params.bm, bm)}
   end
 
   def update(el, ctx) do
-    img = Image.create(ctx, "c_src/nanovg/example/images/image#{el.state.cnt}.jpg", [:repeat_x, :repeat_y])
-    state = %{el.state| img: img, cnt: (if el.state.cnt == 12, do: 1, else: el.state.cnt + 1)}
-    {:ok, %{el|state: state}}
+    {:ok, Vizi.Element.update_params!(el,
+    img: fn _ -> Image.create(ctx, "c_src/nanovg/example/images/image#{el.params.cnt}.jpg", [:repeat_x, :repeat_y]) end,
+    cnt: fn x -> if x == 12, do: 1, else: x + 1 end)}
   end
 
-  def draw(width, height, ctx, state) do
-    paint = Paint.image_pattern(ctx, 0, 0, 100, 100, 45, state.img)
+  def draw(params, width, height, ctx) do
+    paint = Paint.image_pattern(ctx, 0, 0, 100, 100, 45, params.img)
 
     ctx
     |> begin_path()
@@ -68,17 +68,17 @@ defmodule TestC2 do
   end
 
   def update(el, _ctx) do
-    {:ok, update_in(el.state.angle, fn angle -> if angle == 359, do: 0, else: angle + 1 end)}
+    {:ok, update_in(el.params.angle, fn angle -> if angle == 359, do: 0, else: angle + 1 end)}
   end
 
-  def draw(width, height, ctx, state) do
+  def draw(params, width, height, ctx) do
     ctx
     |> begin_path()
     |> rect(0, 0, width, height)
-    |> fill_color(rgba(state.angle, 255, 255))
+    |> fill_color(rgba(params.angle, 255, 255))
     |> fill()
     |> translate(50, 50)
-    |> rotate(deg_to_rad(state.angle))
+    |> rotate(deg_to_rad(params.angle))
     |> translate(-50, -50)
     |> begin_path()
     |> rect(40, 40, 20, 20)
@@ -106,19 +106,19 @@ defmodule TestC3 do
 
   def init(el, ctx) do
     font = Text.create_font(ctx, "/home/zambal/dev/vizi/c_src/nanovg/example/Roboto-Light.ttf")
-    {:ok, %{el|state: %{font: font, color: rgba(255, 0, 0, 255)}}}
+    {:ok, %{el|params: %{font: font, color: rgba(255, 0, 0, 255)}}}
   end
 
-  def draw(_width, _height, ctx, state) do
+  def draw(params, _width, _height, ctx) do
     ctx
-    |> font_face(state.font)
+    |> font_face(params.font)
     |> font_size(48.0)
-    |> fill_color(state.color)
+    |> fill_color(params.color)
     |> text(0, 40, "Hello World!")
   end
 
   def handle_event(c, %Events.Custom{}) do
-    {:done, put_in(c.state.color, rgba(255, 0, 0))}
+    {:done, put_in(c.params.color, rgba(255, 0, 0))}
   end
   def handle_event(_c, _ev) do
     #IO.puts "TestC3 received event: #{inspect ev}"
