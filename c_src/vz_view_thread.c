@@ -1,4 +1,5 @@
 #include "vz_atoms.h"
+#include "vz_helpers.h"
 #include "vz_resources.h"
 #include "vz_events.h"
 
@@ -12,6 +13,21 @@
 #include <erl_nif.h>
 #include <time.h>
 #include <errno.h>
+
+#ifdef VZ_LOG_TIMING
+// Lifted from: https://gist.github.com/diabloneo/9619917
+void timespec_diff(struct timespec *start, struct timespec *stop, struct timespec *result) {
+    if ((stop->tv_nsec - start->tv_nsec) < 0) {
+        result->tv_sec = stop->tv_sec - start->tv_sec - 1;
+        result->tv_nsec = stop->tv_nsec - start->tv_nsec + 1000000000;
+    } else {
+        result->tv_sec = stop->tv_sec - start->tv_sec;
+        result->tv_nsec = stop->tv_nsec - start->tv_nsec;
+    }
+
+    return;
+}
+#endif
 
 static inline void set_next_time_point(struct timespec* ts, int frame_rate) {
   clock_gettime(CLOCK_MONOTONIC, ts);
@@ -96,6 +112,13 @@ void* vz_view_thread(void *p) {
   VZview *vz_view = (VZview*) p;
   PuglView *view;
 
+#ifdef VZ_LOG_TIMING
+  struct timespec ts1, ts2, tsdiff;
+  int num_frames = 120;
+  double_array *timings = double_array_new(num_frames);
+  double avg;
+#endif
+
   enif_mutex_lock(vz_view->lock);
 
   set_next_time_point(&ts, vz_view->frame_rate);
@@ -125,6 +148,10 @@ void* vz_view_thread(void *p) {
 
   while(!vz_view->shutdown) {
     puglProcessEvents(view);
+
+#ifdef VZ_LOG_TIMING
+    clock_gettime(CLOCK_MONOTONIC, &ts1);
+#endif
     vz_send_events(vz_view);
     puglEnterContext(view);
     if(vz_view->redraw_mode == VZ_INTERVAL || vz_view->redraw) {
@@ -134,6 +161,22 @@ void* vz_view_thread(void *p) {
       vz_end_frame(vz_view);
     }
     puglLeaveContext(view, true);
+
+#ifdef VZ_LOG_TIMING
+    clock_gettime(CLOCK_MONOTONIC, &ts2);
+    timespec_diff(&ts1, &ts2, &tsdiff);
+    double_array_push(timings, tsdiff.tv_nsec / 1000000.0);
+    if(timings->end_pos == num_frames) {
+      avg = 0.0;
+      for(unsigned i = 0; i < num_frames; ++i) {
+        avg += timings->array[i];
+      }
+      double_array_clear(timings);
+      avg /= (double)num_frames;
+      LOG("average of %d frames: %.3f ms\r\n", num_frames, avg);
+    }
+#endif
+
     vz_wait_for_frame(vz_view, view, &ts);
   }
   shutdown:
@@ -146,6 +189,10 @@ void* vz_view_thread(void *p) {
   }
   if(view)
     puglDestroy(view);
+
+#ifdef VZ_LOG_TIMING
+  double_array_free(timings);
+#endif
 
   enif_mutex_unlock(vz_view->lock);
   return NULL;

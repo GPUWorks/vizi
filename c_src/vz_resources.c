@@ -8,6 +8,7 @@
 VZ_ARRAY_DEFINE(VZop)
 VZ_ARRAY_DEFINE(VZev)
 VZ_ARRAY_DEFINE(int)
+VZ_ARRAY_DEFINE(double)
 
 
 ErlNifResourceType *vz_view_res;

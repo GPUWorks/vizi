@@ -29,6 +29,7 @@ typedef struct VZop {
 VZ_ARRAY_DECLARE(VZop)
 VZ_ARRAY_DECLARE(VZev)
 VZ_ARRAY_DECLARE(int)
+VZ_ARRAY_DECLARE(double)
 
 /*
   View resource
