@@ -9,26 +9,30 @@ defmodule TestC1 do
     Vizi.Element.create(__MODULE__, %{img: nil, bm: nil, cnt: 1}, opts)
   end
 
-  def init(ctx, state) do
+  def init(el, ctx) do
     bm = Bitmap.create(500, 300)
     Enum.each(0..(Bitmap.size(bm) - 1), fn n ->
       Bitmap.put(bm, n, rem(n, 256), 255 - rem(n, 256), 0, 255)
     end)
     img = Image.from_bitmap(ctx, bm)
-    state = put_in(state.img, img)
-    {:ok, put_in(state.bm, bm)}
+    el = put_in(el.state.img, img)
+    {:ok, put_in(el.state.bm, bm)}
   end
 
-  def draw(ctx, width, height, state) do
-    img = Image.create(ctx, "c_src/nanovg/example/images/image#{state.cnt}.jpg", [:repeat_x, :repeat_y])
-    paint = Paint.image_pattern(ctx, 0, 0, 100, 100, 45, img)
+  def update(el, ctx) do
+    img = Image.create(ctx, "c_src/nanovg/example/images/image#{el.state.cnt}.jpg", [:repeat_x, :repeat_y])
+    state = %{el.state| img: img, cnt: (if el.state.cnt == 12, do: 1, else: el.state.cnt + 1)}
+    {:ok, %{el|state: state}}
+  end
+
+  def draw(width, height, ctx, state) do
+    paint = Paint.image_pattern(ctx, 0, 0, 100, 100, 45, state.img)
 
     ctx
     |> begin_path()
     |> rect(0, 0, width, height)
     |> fill_paint(paint)
     |> fill()
-    {:ok, state}
   end
 
   def handle_event(_c, %Events.Scroll{} = ev) do
@@ -47,32 +51,7 @@ defmodule TestC1 do
     end)
     {:done, c}
   end
-#    bm = el.state.bm
-    #t1 = :os.timestamp
-#    x = el.state.cnt
-#    x = round(128 + :math.sin(deg_to_rad(x)) * 128)
-#    Enum.each(0..(Bitmap.size(bm) - 1), fn n ->
-#      Bitmap.put(bm, n, x, rem(n + x, 256), 0, 255)
-#    end)
 
-#    buffer = for n <- 1..(300*500), into: "" do
-#      <<x, 0, x, 255>>
-#    end
-
-
-#    Enum.each(0..(Bitmap.size(bm) - 1), fn n ->
-#      Bitmap.put_bin(bm, n, <<x, 0, 0, 255>>)
-#    end)
-
-#    Enum.each(0..(div(Bitmap.size(bm), 4) - 1), fn n ->
-#      Bitmap.put_bin(bm, n * 4, <<x, 0, 0, 255, x, 0, 0, 255, x, 0, 0, 255, x, 0, 0, 255>>)
-#    end)
-
-   #t2 = :os.timestamp
-    #IO.puts :timer.now_diff(t2, t1)
-
-    #Image.update_from_bitmap(ev.context, el.state.img, bm)
-    #Image.update(ev.context, el.state.img, buffer)
   def handle_event(_c, _ev) do
     :cont
   end
@@ -88,7 +67,11 @@ defmodule TestC2 do
     Vizi.Element.create(__MODULE__, %{angle: 0, img: nil}, opts)
   end
 
-  def draw(ctx, width, height, state) do
+  def update(el, _ctx) do
+    {:ok, update_in(el.state.angle, fn angle -> if angle == 359, do: 0, else: angle + 1 end)}
+  end
+
+  def draw(width, height, ctx, state) do
     ctx
     |> begin_path()
     |> rect(0, 0, width, height)
@@ -101,9 +84,6 @@ defmodule TestC2 do
     |> rect(40, 40, 20, 20)
     |> fill_color(rgba(0, 0, 255))
     |> fill()
-
-    state = update_in(state.angle, fn a -> if a == 359, do: 0, else: a + 1 end)
-    {:ok, state}
   end
 
   def handle_event(_c, %Events.Motion{} = ev) do
@@ -124,19 +104,17 @@ defmodule TestC3 do
     Vizi.Element.create(__MODULE__, nil, opts)
   end
 
-  def init(ctx, _state) do
+  def init(el, ctx) do
     font = Text.create_font(ctx, "/home/zambal/dev/vizi/c_src/nanovg/example/Roboto-Light.ttf")
-    {:ok, %{font: font, color: rgba(255, 0, 0, 255)}}
+    {:ok, %{el|state: %{font: font, color: rgba(255, 0, 0, 255)}}}
   end
 
-  def draw(ctx, _width, _height, state) do
+  def draw(_width, _height, ctx, state) do
     ctx
     |> font_face(state.font)
     |> font_size(48.0)
     |> fill_color(state.color)
     |> text(0, 40, "Hello World!")
-
-    {:ok, state}
   end
 
   def handle_event(c, %Events.Custom{}) do
@@ -154,7 +132,7 @@ defmodule TestView do
   use Vizi.View
 
   def start do
-    {:ok, _pid} = Vizi.View.start_link(__MODULE__, nil, redraw_mode: :manual, frame_rate: 60)
+    {:ok, _pid} = Vizi.View.start_link(__MODULE__, nil, redraw_mode: :interval, frame_rate: 60)
   end
 
   def init(_args) do

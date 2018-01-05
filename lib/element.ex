@@ -75,13 +75,18 @@ defmodule Vizi.Element do
       @behaviour Vizi.Element
 
       @doc false
-      def init(_ctx, state) do
-        {:ok, state}
+      def init(el, _ctx) do
+        {:ok, el}
       end
 
       @doc false
-      def draw(_ctx, _width, _height, state) do
-        {:ok, state}
+      def update(el, _ctx) do
+        {:ok, el}
+      end
+
+      @doc false
+      def draw(_width, _height, _ctx, _state) do
+        :ok
       end
 
       @doc false
@@ -89,7 +94,7 @@ defmodule Vizi.Element do
         :cont
       end
 
-      defoverridable [init: 2, draw: 4, handle_event: 2]
+      defoverridable [init: 2, update: 2, draw: 4, handle_event: 2]
     end
   end
 
@@ -218,29 +223,29 @@ defmodule Vizi.Element do
 
   @doc false
   def draw(%Element{mod: mod, children: children, width: width, height: height} = el, ctx) do
+    NIF.save(ctx)
     el = maybe_init(el, ctx)
-    state = ctx
-    |> NIF.save()
-    |> NIF.setup_element(el)
-    |> mod.draw(width, height, el.state)
-    |> case do
-      {:ok, state} ->
-        state
+    el = case mod.update(el, ctx) do
+      {:ok, el} ->
+        el
       bad_return ->
-        raise "bad return value from #{inspect el.mod}.draw/4: #{inspect bad_return}"
+        raise "bad return value from #{inspect el.mod}.update/2: #{inspect bad_return}"
     end
+
+    NIF.setup_element(ctx, el)
+    mod.draw(width, height, ctx, el.state)
     children = draw(children, ctx)
     NIF.restore(ctx)
-    %Element{el|children: children, state: state}
+    %Element{el|children: children}
   end
   def draw(els, ctx) when is_list(els) do
     Enum.map(els, &draw(&1, ctx))
   end
 
   defp maybe_init(%Element{initialized: false} = el, ctx) do
-    case el.mod.init(ctx, el.state) do
-      {:ok, state} ->
-        %Element{el|state: state, xform: NIF.transform_translate(0, 0), initialized: true}
+    case el.mod.init(el, ctx) do
+      {:ok, el} ->
+        %Element{el|xform: NIF.transform_translate(0, 0), initialized: true}
       bad_return ->
         raise "bad return value from #{inspect el.mod}.init/2: #{inspect bad_return}"
     end
