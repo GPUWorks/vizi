@@ -44,7 +44,6 @@ defmodule Vizi.Element do
                   {:skew_y, number} |
                   {:rotate, number} |
                   {:alpha, number} |
-                  {:x, number} |
                   {:mod, module} |
                   {:params, params}
 
@@ -59,14 +58,14 @@ defmodule Vizi.Element do
   This function can be used for setting up fonts, images and other resources that are needed for drawing.
   """
   @callback init(el :: Vizi.Element.t, ctx :: Vizi.View.context) ::
-  new_el when new_el: Vizi.Element.t
+  {:ok, new_el} when new_el: Vizi.Element.t
 
   @doc """
   Invoked after `Vizi.View.redraw/1` has been called when `redraw_mode` is `:manual`, or automatically when `redraw_mode` is `:interval`.
 
 
   """
-  @callback draw(ctx :: Vizi.View.context, width :: number, height :: number, params :: params) :: term
+  @callback draw(params :: params, width :: number, height :: number, ctx :: Vizi.View.context) :: term
 
   @callback handle_event(el :: Vizi.Element.t, event :: struct) ::
   :cont | :done |
@@ -199,7 +198,7 @@ defmodule Vizi.Element do
     end
   end
 
-  @spec update_all(parent :: t, tags :: tag | [tag], function) :: [t]
+  @spec update_all(parent :: t, tags :: tag | [tag], function) :: t
   def update_all(%Element{children: children} = parent, tags, fun) do
     tags = List.wrap(tags)
     children = for x <- children do
@@ -212,7 +211,7 @@ defmodule Vizi.Element do
     %Element{parent|children: children}
   end
 
-  @spec update_any(parent :: t, tags :: tag | [tag,], function) :: [t]
+  @spec update_any(parent :: t, tags :: tag | [tag,], function) :: t
   def update_any(%Element{children: children} = parent, tags, fun) do
     tags = List.wrap(tags)
     children = for x <- children do

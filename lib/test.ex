@@ -19,7 +19,10 @@ defmodule TestC1 do
     {:ok, put_in(el.params.bm, bm)}
   end
 
+  @tau 6.28318530718
+
   def update(el, ctx) do
+    el = Vizi.Element.update_attributes(el, rotate: fn x -> if x >= @tau, do: 0, else: x + 0.001 end)
     {:ok, Vizi.Element.update_params!(el,
     img: fn _ -> Image.create(ctx, "c_src/nanovg/example/images/image#{el.params.cnt}.jpg", [:repeat_x, :repeat_y]) end,
     cnt: fn x -> if x == 12, do: 1, else: x + 1 end)}
@@ -46,10 +49,11 @@ defmodule TestC1 do
 
   def handle_event(c, %Events.Motion{} = ev) do
     #IO.puts "TestC1 received event: #{inspect ev}"
-    c = Vizi.Element.update_any(c, :a, fn el ->
-      %{el|x: ev.x, y: ev.y}
+    ch = Stream.with_index(c.children)
+    |> Enum.map(fn {el, ndx} ->
+      %{el|x: ndx + ev.x, y: ndx + ev.y}
     end)
-    {:done, c}
+    {:done, %{c|children: ch}}
   end
 
   def handle_event(_c, _ev) do
@@ -101,7 +105,7 @@ defmodule TestC3 do
   use Vizi.Canvas
 
   def create(opts) do
-    Vizi.Element.create(__MODULE__, nil, opts)
+    Vizi.Element.create(__MODULE__, %{}, opts)
   end
 
   def init(el, ctx) do
