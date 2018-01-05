@@ -68,15 +68,12 @@ static inline void vz_run(VZview *vz_view) {
 static inline void vz_send_events(VZview *vz_view) {
   VZev_array *a = vz_view->ev_array;
 
-  if(vz_view->redraw_mode == VZ_INTERVAL) {
-    ERL_NIF_TERM update_event = vz_make_update_event_struct(vz_view->msg_env, &vz_view->time);
-    VZev_array_push(a, update_event);
+  if(a->end_pos > 0) {
+    ERL_NIF_TERM events = enif_make_list_from_array(vz_view->msg_env, a->array, a->end_pos - a->start_pos);
+    enif_send(NULL, &vz_view->view_pid, vz_view->msg_env, enif_make_tuple2(vz_view->msg_env, ATOM_EVENT, events));
+    enif_clear_env(vz_view->msg_env);
+    VZev_array_clear(a);
   }
-
-  ERL_NIF_TERM events = enif_make_list_from_array(vz_view->msg_env, a->array, a->end_pos - a->start_pos);
-  enif_send(NULL, &vz_view->view_pid, vz_view->msg_env, enif_make_tuple2(vz_view->msg_env, ATOM_EVENT, events));
-  enif_clear_env(vz_view->msg_env);
-  VZev_array_clear(a);
 }
 
 static inline void vz_wait_for_frame(VZview *vz_view, PuglView *view, struct timespec *ts) {
@@ -127,11 +124,9 @@ void* vz_view_thread(void *p) {
   puglShowWindow(view);
 
   while(!vz_view->shutdown) {
-    puglEnterContext(view);
     puglProcessEvents(view);
     vz_send_events(vz_view);
-    vz_run(vz_view);
-    if(vz_view->shutdown) goto shutdown;
+    puglEnterContext(view);
     if(vz_view->redraw_mode == VZ_INTERVAL || vz_view->redraw) {
       vz_begin_frame(vz_view);
       vz_send_draw(vz_view);

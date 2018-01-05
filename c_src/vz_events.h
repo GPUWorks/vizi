@@ -7,8 +7,6 @@
 #include <time.h>
 
 
-ERL_NIF_TERM vz_make_update_event_struct(ErlNifEnv* env, struct timespec *ts);
-ERL_NIF_TERM vz_make_event_struct(ErlNifEnv* env, const PuglEvent* event, double width_factor, double height_factor);
 void vz_on_event(PuglView* view, const PuglEvent* event);
 
 #endif

@@ -16,17 +16,19 @@ defmodule TestC1 do
     end)
     img = Image.from_bitmap(ctx, bm)
     c = put_in(c.state.img, img)
-    put_in(c.state.bm, bm)
+    {:ok, put_in(c.state.bm, bm)}
   end
 
   def draw(ctx, width, height, state) do
-    paint = Paint.image_pattern(ctx, 0, 0, 500, 300, 0, state.img)
+#    img = Image.create(ctx, "c_src/nanovg/example/images/image#{state.cnt}.jpg", [:repeat_x, :repeat_y])
+    paint = Paint.image_pattern(ctx, 0, 0, 100, 100, 45, state.img)
 
     ctx
     |> begin_path()
     |> rect(0, 0, width, height)
     |> fill_paint(paint)
     |> fill()
+    {:ok, state}
   end
 
   def handle_event(_c, %Events.Scroll{} = ev) do
@@ -44,7 +46,6 @@ defmodule TestC1 do
     c2 = %{c2|x: ev.x, y: ev.y}
     {:done, %{c|children: [c2, c3]}}
   end
-  def handle_event(el, %Events.Update{} = ev) do
 #    bm = el.state.bm
     #t1 = :os.timestamp
 #    x = el.state.cnt
@@ -71,15 +72,13 @@ defmodule TestC1 do
 
     #Image.update_from_bitmap(ev.context, el.state.img, bm)
     #Image.update(ev.context, el.state.img, buffer)
-    el = put_in(el.rotate, deg_to_rad(el.state.cnt))
-    {:cont, update_in(el.state.cnt, fn x -> if x == 359, do: 0, else: x + 0.125 end)}
-  end
   def handle_event(_c, _ev) do
     :cont
   end
 end
 
 defmodule TestC2 do
+
   @moduledoc false
   use Vizi.Element
   use Vizi.Canvas
@@ -92,7 +91,7 @@ defmodule TestC2 do
     ctx
     |> begin_path()
     |> rect(0, 0, width, height)
-    |> fill_color(rgba(255, 255, 255))
+    |> fill_color(rgba(state.angle, 255, 255))
     |> fill()
     |> translate(50, 50)
     |> rotate(deg_to_rad(state.angle))
@@ -101,12 +100,11 @@ defmodule TestC2 do
     |> rect(40, 40, 20, 20)
     |> fill_color(rgba(0, 0, 255))
     |> fill()
+
+    state = update_in(state.angle, fn a -> if a == 359, do: 0, else: a + 1 end)
+    {:ok, state}
   end
 
-  def handle_event(el, %Events.Update{}) do
-    el = update_in(el.state.angle, fn a -> if a == 359, do: 0, else: a + 1 end)
-    {:cont, put_in(el.rotate, deg_to_rad(20))}
-  end
   def handle_event(_c, %Events.Motion{} = ev) do
     IO.inspect ev
     :cont
@@ -125,9 +123,9 @@ defmodule TestC3 do
     Vizi.Element.create(__MODULE__, nil, opts)
   end
 
-  def init(c, ctx) do
+  def init(ctx, _state) do
     font = Text.create_font(ctx, "/home/zambal/dev/vizi/c_src/nanovg/example/Roboto-Light.ttf")
-    %{c|state: %{font: font, color: rgba(255, 255, 255, 255)}}
+    {:ok, %{font: font, color: rgba(255, 0, 0, 255)}}
   end
 
   def draw(ctx, _width, _height, state) do
@@ -136,6 +134,8 @@ defmodule TestC3 do
     |> font_size(48.0)
     |> fill_color(state.color)
     |> text(0, 40, "Hello World!")
+
+    {:ok, state}
   end
 
   def handle_event(c, %Events.Custom{}) do
@@ -153,14 +153,15 @@ defmodule TestView do
   use Vizi.View
 
   def start do
-    {:ok, _pid} = Vizi.View.start_link(__MODULE__, nil, redraw_mode: :manual, frame_rate: 60)
+    {:ok, _pid} = Vizi.View.start_link(__MODULE__, nil, redraw_mode: :interval, frame_rate: 60)
   end
 
   def init(_args) do
-    root = TestC1.create(x: 100, y: 100, width: 500, height: 300, children: [
-      TestC2.create(x: 100, y: 100, width: 100, height: 100, tags: [:a, :b]),
-      TestC3.create(x: 0, y: 0, width: 200, height: 50, tags: [:b, :c])
-    ])
+    root = TestC2.create(x: 100, y: 100, width: 500, height: 300, children:
+      for n <- 1..100 do
+        TestC2.create(x: n + 100, y: n + 100, width: 100, height: 100, alpha: 0.3, tags: [:a, :b])
+      end
+    )
     {:ok, root, nil}
   end
 end

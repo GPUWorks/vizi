@@ -75,13 +75,13 @@ defmodule Vizi.Element do
       @behaviour Vizi.Element
 
       @doc false
-      def init( el, _ctx) do
-        el
+      def init(_ctx, state) do
+        {:ok, state}
       end
 
       @doc false
-      def draw(_ctx, _width, _height, _state) do
-        :ok
+      def draw(_ctx, _width, _height, state) do
+        {:ok, state}
       end
 
       @doc false
@@ -216,25 +216,37 @@ defmodule Vizi.Element do
 
   @doc false
   def draw(%Element{mod: mod, children: children, width: width, height: height} = el, ctx) do
-    _ = ctx
+    el = maybe_init(el, ctx)
+    state = ctx
     |> NIF.save()
     |> NIF.setup_element(el)
     |> mod.draw(width, height, el.state)
-    _ = draw(children, ctx)
+    |> case do
+      {:ok, state} ->
+        state
+      bad_return ->
+        raise "bad return value from #{inspect el.mod}.draw/4: #{inspect bad_return}"
+    end
+    children = draw(children, ctx)
     NIF.restore(ctx)
+    %Element{el|children: children, state: state}
   end
   def draw(els, ctx) when is_list(els) do
     Enum.map(els, &draw(&1, ctx))
   end
 
+  defp maybe_init(%Element{initialized: false} = el, ctx) do
+    case el.mod.init(ctx, el.state) do
+      {:ok, state} ->
+        %Element{el|state: state, xform: NIF.transform_translate(0, 0), initialized: true}
+      bad_return ->
+        raise "bad return value from #{inspect el.mod}.init/2: #{inspect bad_return}"
+    end
+  end
+  defp maybe_init(el, _ctx), do: el
+
   @doc false
   def handle_events(%Element{} = el, events, ctx) do
-    el = if el.initialized do
-      el
-    else
-      el = el.mod.init(el, ctx)
-      %Element{el|xform: NIF.transform_translate(0, 0), initialized: true}
-    end
 
     {el, events} = Enum.reduce(events, {el, []}, &maybe_handle_event/2)
     {children, events} = handle_events(el.children, Enum.reverse(events), ctx)
@@ -258,9 +270,6 @@ defmodule Vizi.Element do
         else
           {el, [ev | acc]}
         end
-
-      match?(%Events.Update{}, ev) ->
-        handle_event(el, ev, acc)
 
       match?(%Events.Custom{}, ev) ->
         handle_event(el, ev, acc)

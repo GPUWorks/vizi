@@ -217,14 +217,13 @@ defmodule Vizi.View do
 
   @doc false
   def handle_info({:vz_draw, _ts}, state) do
-    Vizi.Element.draw(state.root, state.context)
+    root = Vizi.Element.draw(state.root, state.context)
     Vizi.NIF.ready(state.context)
-    {:noreply, state}
+    {:noreply, %{state|root: root}}
   end
 
   def handle_info({:vz_event, events}, state) when is_list(events) do
     state = handle_events(state.custom_events ++ events, state)
-    Vizi.NIF.ready(state.context)
     {:noreply, state}
   end
 

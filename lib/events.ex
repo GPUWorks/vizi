@@ -46,16 +46,6 @@ defmodule Vizi.Events do
     defstruct [:context, :type, :grab]
   end
 
-  defmodule Draw do
-    @moduledoc false
-    defstruct [:context, :type, :time]
-  end
-
-  defmodule Update do
-    @moduledoc false
-    defstruct [:context, :type, :time]
-  end
-
   defmodule Custom do
     @moduledoc false
     defstruct [:context, :type, :params, :time]

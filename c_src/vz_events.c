@@ -252,19 +252,7 @@ static ERL_NIF_TERM vz_make_focus_event_struct(ErlNifEnv* env, const PuglEventFo
   return map;
 }
 
-ERL_NIF_TERM vz_make_update_event_struct(ErlNifEnv* env, struct timespec *ts) {
-  ERL_NIF_TERM map = enif_make_new_map(env);
-  unsigned time = (ts->tv_sec * 1000) + (ts->tv_nsec / 1000000);
-
-  enif_make_map_put(env, map, ATOM__STRUCT__, ATOM_UPDATE_EVENT, &map);
-  enif_make_map_put(env, map, ATOM_CONTEXT, ATOM_NIL, &map);
-  enif_make_map_put(env, map, ATOM_TYPE, ATOM_UPDATE_EVENT_TYPE, &map);
-  enif_make_map_put(env, map, ATOM_TIME, enif_make_uint(env, time), &map);
-
-  return map;
-}
-
-ERL_NIF_TERM vz_make_event_struct(ErlNifEnv* env, const PuglEvent* event, double width_factor, double height_factor) {
+static ERL_NIF_TERM vz_make_event_struct(ErlNifEnv* env, const PuglEvent* event, double width_factor, double height_factor) {
   switch(event->type) {
     case PUGL_BUTTON_PRESS:
     case PUGL_BUTTON_RELEASE:
