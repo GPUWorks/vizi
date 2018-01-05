@@ -191,25 +191,27 @@ defmodule Vizi.Element do
   end
 
   @spec update_all(parent :: t, tags :: tag | [tag], function) :: [t]
-  def update_all(%Element{children: children}, tags, fun) do
+  def update_all(%Element{children: children} = parent, tags, fun) do
     tags = List.wrap(tags)
-    for x <- children do
+    children = for x <- children do
       if Enum.all?(tags, &(&1 in x.tags)) do
         fun.(x)
       else
         x
       end
     end
+    %Element{parent|children: children}
   end
 
   @spec update_any(parent :: t, tags :: tag | [tag,], function) :: [t]
-  def update_any(%Element{children: children}, tags, fun) do
+  def update_any(%Element{children: children} = parent, tags, fun) do
     tags = List.wrap(tags)
-    for x <- children do
+    children = for x <- children do
       if Enum.any?(tags, &(&1 in x.tags)) do
         fun.(x)
       end
     end
+    %Element{parent|children: children}
   end
 
   # Internals
