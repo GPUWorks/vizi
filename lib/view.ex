@@ -333,7 +333,6 @@ defmodule Vizi.View do
     {evs, root, mod_state, new_state}
   end
   defp do_handle_event(ev, {evs, root, mod_state, state}) do
-    ev = %{ev|context: state.context}
     case state.mod.handle_event(ev, root, mod_state) do
       :cont ->
         {[ev|evs], root, mod_state, state}
