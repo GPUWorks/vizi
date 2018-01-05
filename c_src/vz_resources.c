@@ -201,7 +201,7 @@ void vz_bitmap_put(VZbitmap *bm, unsigned ndx, unsigned char r, unsigned char g,
 */
 void vz_bitmap_put_bin(VZbitmap *bm, unsigned ndx, const unsigned char *rgba, int size) {
   ndx = ndx * 4;
-  if((ndx + size) < bm->byte_size) {
+  if((ndx + size) <= bm->byte_size) {
     memcpy(bm->buffer + ndx, rgba, size);
   }
 }
