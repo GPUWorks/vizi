@@ -29,6 +29,8 @@ defmodule Vizi.Element do
 
   @type params :: %{optional(atom) => term}
 
+  @type updates :: [{atom, (term -> term)}]
+
   @typedoc "Option values used by `create/3`"
   @type option :: {:tags, [tag]} |
                   {:x, number} |
@@ -241,7 +243,7 @@ defmodule Vizi.Element do
     %Element{el|params: Map.update!(params, key, fun)}
   end
 
-  @spec update_params!(el :: t, updates :: [{atom, (term -> term)}]) :: t
+  @spec update_params!(el :: t, updates) :: t
   def update_params!(%Element{params: params} = el, updates) do
     params = Enum.reduce(updates, params, fn {key, fun}, acc ->
       Map.update!(acc, key, fun)
@@ -249,6 +251,12 @@ defmodule Vizi.Element do
     %Element{el|params: params}
   end
 
+  @spec update_attributes(el :: t, updates) :: t
+  def update_attributes(el, updates) do
+    Enum.reduce(updates, el, fn {key, fun}, acc ->
+      Map.update!(acc, key, fun)
+    end)
+  end
 
   # Internals
 

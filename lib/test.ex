@@ -138,7 +138,7 @@ defmodule TestView do
   def init(_args) do
     root = TestC1.create(x: 100, y: 100, width: 500, height: 300, children:
       for n <- 1..100 do
-        TestC2.create(x: n + 100, y: n + 100, width: 100, height: 100, alpha: 0.3, tags: [:a, :b])
+        TestC2.create(x: n, y: n, width: 100, height: 100, alpha: 0.01, tags: [:a, :b])
       end
     )
     {:ok, root, nil}
