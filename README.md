@@ -1,4 +1,4 @@
-# Nanoview
+# Vizi
 
 **TODO: Add description**
 
