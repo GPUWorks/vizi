@@ -118,69 +118,50 @@ defmodule Vizi.Element do
 
   @spec put_front(parent :: t, el :: t) :: t
   def put_front(%Element{children: children} = parent, el) do
+    children = List.delete(children, el)
     %Element{parent|children: children ++ [el]}
   end
 
   @spec put_back(parent :: t, el :: t) :: t
   def put_back(%Element{children: children} = parent, el) do
+    children = List.delete(children, el)
     %Element{parent|children: [el | children]}
   end
 
   @spec put_before(parent :: t, member :: t, el :: t) :: t
-  def put_before(%Element{children: children} = parent, member, el) do
-    children = Enum.reduce(children, [], fn x, acc ->
-      if x == member, do: [el, x | acc], else: [x | acc]
-    end)
-    %Element{parent|children: Enum.reverse(children)}
+  def put_before(%Element{} = parent, member, el) do
+    put_ba(parent, :before, member, el)
   end
 
   @spec put_after(parent :: t, member :: t, el :: t) :: t
-  def put_after(%Element{children: children} = parent, member, el) do
-    children = Enum.reduce(children, [], fn x, acc ->
-      if x == member, do: [x, el | acc], else: [x | acc]
-    end)
-    %Element{parent|children: Enum.reverse(children)}
+  def put_after(%Element{} = parent, member, el) do
+    put_ba(parent, :after, member, el)
   end
 
-  @spec move_front(parent :: t, el :: t) :: t
-  def move_front(%Element{children: children} = parent, el) do
-    children = List.delete(children, el)
-    %Element{parent|children: children ++ [el]}
-  end
+  defp put_ba(parent, op, member, el) do
+    put_fun = case op do
+      :before -> fn acc -> [el, member | acc] end
+      :after  -> fn acc -> [member, el | acc] end
+    end
 
-  @spec move_back(parent :: t, el :: t) :: t
-  def move_back(%Element{children: children} = parent, el) do
-    children = List.delete(children, el)
-    %Element{parent|children: [el | children]}
-  end
-
-  @spec move_before(parent :: t, member :: t, el :: t) :: t
-  def move_before(%Element{children: children} = parent, member, el) do
-    children = Enum.reduce(children, [], fn x, acc ->
+    {_del, put, children} = Enum.reduce(parent.children, {false, false, []}, fn x, {del, put, acc} ->
       cond do
-        x == member -> [el, x | acc]
-        x == el     -> acc
-        true        -> [x | acc]
+        not put and x == member -> {del, true, put_fun.(acc)}
+        not del and x == el     -> {true, put, acc}
+        true                    -> {del, put, [x | acc]}
       end
     end)
-    %Element{parent|children: Enum.reverse(children)}
-  end
 
-  @spec move_after(parent :: t, member :: t, el :: t) :: t
-  def move_after(%Element{children: children} = parent, member, el) do
-    children = Enum.reduce(children, [], fn x, acc ->
-      cond do
-        x == member -> [x, el | acc]
-        x == el     -> acc
-        true        -> [x | acc]
-      end
-    end)
-    %Element{parent|children: Enum.reverse(children)}
+    if put do
+      %Element{parent|children: Enum.reverse(children)}
+    else
+      parent
+    end
   end
 
   @spec remove(parent :: t, el :: t) :: t
   def remove(%Element{children: children} = parent, el) do
-    List.delete(children, el)
+    children = Enum.filter(children, &(&1 != el))
     %Element{parent|children: children}
   end
 
@@ -209,6 +190,27 @@ defmodule Vizi.Element do
     end
   end
 
+  @spec update_all(parent :: t, tags :: tag | [tag], function) :: [t]
+  def update_all(%Element{children: children}, tags, fun) do
+    tags = List.wrap(tags)
+    for x <- children do
+      if Enum.all?(tags, &(&1 in x.tags)) do
+        fun.(x)
+      else
+        x
+      end
+    end
+  end
+
+  @spec update_any(parent :: t, tags :: tag | [tag,], function) :: [t]
+  def update_any(%Element{children: children}, tags, fun) do
+    tags = List.wrap(tags)
+    for x <- children do
+      if Enum.any?(tags, &(&1 in x.tags)) do
+        fun.(x)
+      end
+    end
+  end
 
   # Internals
 
@@ -226,63 +228,49 @@ defmodule Vizi.Element do
   end
 
   @doc false
-  def handle_events(%Element{children: children} = el, events, ctx) do
-    {children, events} = children
-    |> Enum.reverse()
-    |> handle_events(events, ctx)
-
-    el = %Element{el | children: children}
+  def handle_events(%Element{} = el, events, ctx) do
     el = if el.initialized do
       el
     else
       el = el.mod.init(el, ctx)
       %Element{el|xform: NIF.transform_translate(0, 0), initialized: true}
     end
-    {el, events} = Enum.reduce(events, {el, []}, &maybe_apply_event/2)
-    {el, Enum.reverse(events)}
+
+    {el, events} = Enum.reduce(events, {el, []}, &maybe_handle_event/2)
+    {children, events} = handle_events(el.children, Enum.reverse(events), ctx)
+    {%Element{el | children: children}, events}
   end
   def handle_events(els, events, ctx) when is_list(els) do
-    Enum.reduce(els, {[], events}, fn el, {els, evs} ->
+    {els, events} = Enum.reduce(els, {[], events}, fn el, {els, evs} ->
       {new_el, new_evs} = handle_events(el, evs, ctx)
       {[new_el | els], new_evs}
     end)
+    {Enum.reverse(els), events}
   end
 
-  defp maybe_apply_event(ev, {el, acc}) do
+  defp maybe_handle_event(ev, {el, acc}) do
     cond do
       ev.type in ~w(button_press button_release key_press key_release motion scroll)a ->
         inv_xform = NIF.transform_inverse(el.xform)
         {x, y} = NIF.transform_point(inv_xform, ev.abs_x, ev.abs_y)
         if touches?(el, x, y) do
-          apply_event(el, %{ev|x: x, y: y}, acc)
+          handle_event(el, %{ev|x: x, y: y}, acc)
         else
           {el, [ev | acc]}
         end
 
       match?(%Events.Update{}, ev) ->
-        apply_event(el, ev, acc)
+        handle_event(el, ev, acc)
 
       match?(%Events.Custom{}, ev) ->
-        apply_event(el, ev, acc)
+        handle_event(el, ev, acc)
 
       true ->
         {el, [ev | acc]}
     end
   end
 
-  defp apply_event(el, %Events.Update{} = ev, acc) do
-    case el.mod.handle_event(el, ev) do
-      :cont ->
-        {el, [ev | acc]}
-      {:done, new_el} ->
-        {new_el, [ev | acc]}
-      {:cont, new_el} ->
-        {new_el, [ev | acc]}
-      :done ->
-        {el, [ev | acc]}
-        end
-  end
-  defp apply_event(el, ev, acc) do
+  defp handle_event(el, ev, acc) do
     case el.mod.handle_event(el, ev) do
       :cont ->
         {el, [ev | acc]}
