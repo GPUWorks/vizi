@@ -68,8 +68,11 @@ if(!enif_get_double(env, term, &value)) {   \
   else goto err;                            \
 }                                           \
 
-#define VZ_HANDLER_SEND(msg)                                                                                  \
-  enif_send(NULL, &vz_view->view_pid, vz_view->msg_env, enif_make_tuple2(vz_view->msg_env, ATOM_REPLY, msg))  \
+#define VZ_HANDLER_SEND(msg)                                                                                    \
+  do {                                                                                                          \
+    enif_send(NULL, &vz_view->view_pid, vz_view->msg_env, enif_make_tuple2(vz_view->msg_env, ATOM_REPLY, msg)); \
+    enif_clear_env(vz_view->msg_env);                                                                           \
+  } while(0)                                                                                                    \
 
 #define VZ_HANDLER_SEND_BADARG    \
   do {                            \

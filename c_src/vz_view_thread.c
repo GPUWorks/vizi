@@ -45,6 +45,7 @@ static inline void vz_send_draw(VZview *vz_view) {
   unsigned time = (vz_view->time.tv_sec * 1000) + (vz_view->time.tv_nsec / 1000000);
   ERL_NIF_TERM msg = enif_make_tuple2(vz_view->msg_env, ATOM_DRAW, enif_make_uint(vz_view->msg_env, time));
   enif_send(NULL, &vz_view->view_pid, vz_view->msg_env, msg);
+  enif_clear_env(vz_view->msg_env);
 }
 
 static inline void vz_run(VZview *vz_view) {
@@ -55,7 +56,6 @@ static inline void vz_run(VZview *vz_view) {
     for(unsigned i = a->start_pos; i < a->end_pos; ++i) {
       VZop op = a->array[i];
       op.handler(vz_view, op.args);
-      enif_clear_env(vz_view->msg_env);
     }
     a->start_pos = a->end_pos;
   } while(vz_view->busy);
