@@ -260,23 +260,21 @@ defmodule Vizi.Element do
     {Enum.reverse(els), events}
   end
 
-  defp maybe_handle_event(ev, {el, acc}) do
-    cond do
-      ev.type in ~w(button_press button_release key_press key_release motion scroll)a ->
-        inv_xform = NIF.transform_inverse(el.xform)
-        {x, y} = NIF.transform_point(inv_xform, ev.abs_x, ev.abs_y)
-        if touches?(el, x, y) do
-          handle_event(el, %{ev|x: x, y: y}, acc)
-        else
-          {el, [ev | acc]}
-        end
-
-      match?(%Events.Custom{}, ev) ->
-        handle_event(el, ev, acc)
-
-      true ->
-        {el, [ev | acc]}
+  defp maybe_handle_event(%Events.Custom{} = ev, {el, acc}) do
+    handle_event(el, ev, acc)
+  end
+  defp maybe_handle_event(%{type: type} = ev, {el, acc})
+  when type in ~w(button_press button_release key_press key_release motion scroll)a do
+    inv_xform = NIF.transform_inverse(el.xform)
+    {x, y} = NIF.transform_point(inv_xform, ev.abs_x, ev.abs_y)
+    if touches?(el, x, y) do
+      handle_event(el, %{ev|x: x, y: y}, acc)
+    else
+      {el, [ev | acc]}
     end
+  end
+  defp maybe_handle_event(ev, {el, acc}) do
+    {el, [ev | acc]}
   end
 
   defp handle_event(el, ev, acc) do
