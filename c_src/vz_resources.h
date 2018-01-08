@@ -44,6 +44,7 @@ struct VZview {
   PuglView *view;
   NVGcontext* ctx;
   ErlNifEnv *msg_env;
+  ErlNifEnv *ev_env;
   ErlNifCond *execute_cv;
   ErlNifMutex *lock;
   bool busy;

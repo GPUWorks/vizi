@@ -293,7 +293,7 @@ void vz_on_event(PuglView* view, const PuglEvent* event) {
         vz_view->width_factor = configure->width / (double)vz_view->init_width;
         vz_view->height_factor = configure->height / (double)vz_view->init_height;
         vz_view->redraw = true;
-        ERL_NIF_TERM configure_struct = vz_make_configure_event_struct(vz_view->msg_env, configure);
+        ERL_NIF_TERM configure_struct = vz_make_configure_event_struct(vz_view->ev_env, configure);
         VZev_array_push(vz_view->ev_array, configure_struct);
         break;
       }
@@ -305,7 +305,7 @@ void vz_on_event(PuglView* view, const PuglEvent* event) {
         vz_view->shutdown = true;
         break;
       default: {
-        ERL_NIF_TERM event_struct = vz_make_event_struct(vz_view->msg_env, event, vz_view->width_factor, vz_view->height_factor);
+        ERL_NIF_TERM event_struct = vz_make_event_struct(vz_view->ev_env, event, vz_view->width_factor, vz_view->height_factor);
         VZev_array_push(vz_view->ev_array, event_struct);
       }
     }

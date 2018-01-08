@@ -94,7 +94,8 @@ static inline void vz_end_frame(VZview *vz_view) {
 static inline void vz_send_draw(VZview *vz_view) {
   unsigned time = 0;//(vz_view->time.tv_sec * 1000) + (vz_view->time.tv_nsec / 1000000);
   ERL_NIF_TERM msg = enif_make_tuple2(vz_view->msg_env, ATOM_DRAW, enif_make_uint(vz_view->msg_env, time));
-  enif_send(NULL, &vz_view->view_pid, NULL, msg);
+  enif_send(NULL, &vz_view->view_pid, vz_view->msg_env, msg);
+  enif_clear_env(vz_view->msg_env);
 }
 
 static inline void vz_run(VZview *vz_view) {
@@ -118,9 +119,9 @@ static inline void vz_send_events(VZview *vz_view) {
   VZev_array *a = vz_view->ev_array;
 
   if(a->end_pos > 0) {
-    ERL_NIF_TERM events = enif_make_list_from_array(vz_view->msg_env, a->array, a->end_pos - a->start_pos);
-    enif_send(NULL, &vz_view->view_pid, vz_view->msg_env, enif_make_tuple2(vz_view->msg_env, ATOM_EVENT, events));
-    enif_clear_env(vz_view->msg_env);
+    ERL_NIF_TERM events = enif_make_list_from_array(vz_view->ev_env, a->array, a->end_pos - a->start_pos);
+    enif_send(NULL, &vz_view->view_pid, vz_view->ev_env, enif_make_tuple2(vz_view->ev_env, ATOM_EVENT, events));
+    enif_clear_env(vz_view->ev_env);
     VZev_array_clear(a);
   }
 }

@@ -34,6 +34,7 @@ VZview* vz_alloc_view(ErlNifEnv* env) {
   vz_view->ev_array = VZev_array_new(16);
   vz_view->res_array = int_array_new(256);
   vz_view->msg_env = enif_alloc_env();
+  vz_view->ev_env = enif_alloc_env();
   vz_view->busy = false;
   vz_view->shutdown = false;
   vz_view->resizable = false;
@@ -73,6 +74,7 @@ void vz_view_dtor(ErlNifEnv *env, void *resource) {
     enif_cond_destroy(vz_view->execute_cv);
     vz_view->execute_cv = NULL;
     enif_free_env(vz_view->msg_env);
+    enif_free_env(vz_view->ev_env);
     for(unsigned i = 0; i < vz_view->op_array->end_pos; ++i) {
       free(vz_view->op_array->array[i].args);
     }
