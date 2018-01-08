@@ -298,7 +298,8 @@ void vz_on_event(PuglView* view, const PuglEvent* event) {
         break;
       }
       case PUGL_EXPOSE:
-        vz_view->redraw = true;
+		    vz_draw(vz_view);
+		    vz_view->redraw = false;
         break;
       case PUGL_CLOSE:
         vz_view->shutdown = true;

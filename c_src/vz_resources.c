@@ -53,7 +53,7 @@ VZview* vz_alloc_view(ErlNifEnv* env) {
   vz_view->parent = 0;
   vz_view->bg = nvgRGB(0,0,0);
   memset(vz_view->title, 0, VZ_MAX_STRING_LENGTH);
-  clock_gettime(CLOCK_MONOTONIC, &vz_view->time);
+  //clock_gettime(CLOCK_MONOTONIC, &vz_view->time);
 
   return vz_view;
 }
@@ -72,6 +72,7 @@ void vz_view_dtor(ErlNifEnv *env, void *resource) {
     vz_view->lock = NULL;
     enif_cond_destroy(vz_view->execute_cv);
     vz_view->execute_cv = NULL;
+    enif_free_env(vz_view->msg_env);
     for(unsigned i = 0; i < vz_view->op_array->end_pos; ++i) {
       free(vz_view->op_array->array[i].args);
     }

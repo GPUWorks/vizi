@@ -38,17 +38,14 @@ defmodule TestC1 do
     |> fill()
   end
 
-  def handle_event(_c, %Events.Scroll{} = ev) do
-    IO.inspect ev
-    :done
-  end
-  def handle_event(_c, %Events.Button{type: :button_release}) do
+  def handle_event(_c, %Events.Button{type: :button_release} = ev) do
+    #IO.puts "TestC1 received BUTTON event: #{inspect ev}"
     Vizi.View.redraw()
     :done
   end
 
   def handle_event(c, %Events.Motion{} = ev) do
-    #IO.puts "TestC1 received event: #{inspect ev}"
+    #IO.puts "TestC1 received MOTION event: #{inspect ev}"
     ch = Stream.with_index(c.children)
     |> Enum.map(fn {el, ndx} ->
       %{el|x: ndx + ev.x, y: ndx + ev.y}
@@ -56,7 +53,8 @@ defmodule TestC1 do
     {:done, %{c|children: ch}}
   end
 
-  def handle_event(_c, _ev) do
+  def handle_event(_c, ev) do
+   # IO.inspect ev
     :cont
   end
 end
@@ -124,19 +122,19 @@ defmodule TestC3 do
   def handle_event(c, %Events.Custom{}) do
     {:done, put_in(c.params.color, rgba(255, 0, 0))}
   end
-  def handle_event(_c, _ev) do
-    #IO.puts "TestC3 received event: #{inspect ev}"
+  def handle_event(_c, ev) do
+    IO.puts "TestC3 received event: #{inspect ev}"
     :cont
   end
 end
 
 
-defmodule TestView do
+defmodule T do
   @moduledoc false
   use Vizi.View
 
-  def start do
-    {:ok, _pid} = Vizi.View.start_link(__MODULE__, nil, redraw_mode: :interval, frame_rate: 60)
+  def s do
+    {:ok, _pid} = Vizi.View.start_link(__MODULE__, nil, redraw_mode: :interval, frame_rate: 2)
   end
 
   def init(_args) do

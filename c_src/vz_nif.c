@@ -8,7 +8,12 @@
 
 #include <erl_nif.h>
 #include <string.h>
+
+#ifdef LINUX
 #include <X11/Xlib.h>
+#elif WINDOWS
+#include <windows.h>
+#endif
 
 /*
 Helpers
@@ -516,7 +521,7 @@ static ERL_NIF_TERM vz_hsla(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 VZ_ASYNC_DECL(
   vz_save,
   {
-    // no args
+    __EMPTY_STRUCT
   },
   {
     __UNUSED(args);
@@ -530,7 +535,7 @@ VZ_ASYNC_DECL(
 VZ_ASYNC_DECL(
   vz_restore,
   {
-    // no args
+    __EMPTY_STRUCT
   },
   {
     __UNUSED(args);
@@ -544,7 +549,7 @@ VZ_ASYNC_DECL(
 VZ_ASYNC_DECL(
   vz_reset,
   {
-    // no args
+    __EMPTY_STRUCT
   },
   {
     __UNUSED(args);
@@ -724,7 +729,7 @@ VZ_ASYNC_DECL(
 VZ_ASYNC_DECL(
   vz_reset_transform,
   {
-    // no args
+    __EMPTY_STRUCT
   },
   {
     __UNUSED(args);
@@ -837,7 +842,7 @@ VZ_ASYNC_DECL(
 VZ_ASYNC_DECL(
   vz_current_transform,
   {
-    // no args
+    __EMPTY_STRUCT
   },
   {
     __UNUSED(args);
@@ -854,7 +859,7 @@ VZ_ASYNC_DECL(
 VZ_ASYNC_DECL(
   vz_transform_identity,
   {
-    // no args
+    __EMPTY_STRUCT
   },
   {
     __UNUSED(ctx);
@@ -1420,7 +1425,7 @@ VZ_ASYNC_DECL(
 VZ_ASYNC_DECL(
   vz_reset_scissor,
   {
-    // no args
+    __EMPTY_STRUCT
   },
   {
     __UNUSED(args);
@@ -1434,7 +1439,7 @@ VZ_ASYNC_DECL(
 VZ_ASYNC_DECL(
   vz_begin_path,
   {
-    // no args
+    __EMPTY_STRUCT
   },
   {
     __UNUSED(args);
@@ -1551,7 +1556,7 @@ VZ_ASYNC_DECL(
 VZ_ASYNC_DECL(
   vz_close_path,
   {
-    // no args
+    __EMPTY_STRUCT
   },
   {
     __UNUSED(args);
@@ -1722,7 +1727,7 @@ VZ_ASYNC_DECL(
 VZ_ASYNC_DECL(
   vz_fill,
   {
-    // no args
+    __EMPTY_STRUCT
   },
   {
     __UNUSED(args);
@@ -1736,7 +1741,7 @@ VZ_ASYNC_DECL(
 VZ_ASYNC_DECL(
   vz_stroke,
   {
-    // no args
+    __EMPTY_STRUCT
   },
   {
     __UNUSED(args);
@@ -2122,7 +2127,7 @@ VZ_ASYNC_DECL(
 VZ_ASYNC_DECL(
   vz_text_metrics,
   {
-    // no args
+    __EMPTY_STRUCT
   },
   {
     __UNUSED(args);
@@ -2264,17 +2269,17 @@ static ERL_NIF_TERM vz_bm_put_bin(ErlNifEnv* env, int argc, const ERL_NIF_TERM a
 
 static ERL_NIF_TERM vz_send_wakeup_event(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) {
   VZview *vz_view;
-  XExposeEvent event;
 
   if(!(argc == 1 &&
        enif_get_resource(env, argv[0], vz_view_res, (void**)&vz_view))) {
     return BADARG;
   }
-
   enif_mutex_lock(vz_view->lock);
 
+#ifdef LINUX
   Display *display = XOpenDisplay(0);
   Window window = puglGetNativeWindow(vz_view->view);
+  XExposeEvent event;
 
   event.type = Expose;
   event.display = display;
@@ -2287,6 +2292,10 @@ static ERL_NIF_TERM vz_send_wakeup_event(ErlNifEnv* env, int argc, const ERL_NIF
 
   XSendEvent(display, window, False, ExposureMask, (XEvent*)&event);
   XFlush(display);
+#elif defined(WINDOWS)
+  HWND hwnd = puglGetNativeWindow(vz_view->view);
+  InvalidateRect(hwnd, NULL, FALSE);
+#endif
 
   enif_mutex_unlock(vz_view->lock);
 

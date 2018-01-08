@@ -29,6 +29,7 @@ void timespec_diff(struct timespec *start, struct timespec *stop, struct timespe
 }
 #endif
 
+#if defined(LINUX) || defined(MACOS)
 static inline void set_next_time_point(struct timespec* ts, int frame_rate) {
   clock_gettime(CLOCK_MONOTONIC, ts);
   long interval = 1000000000 / frame_rate;
@@ -37,11 +38,55 @@ static inline void set_next_time_point(struct timespec* ts, int frame_rate) {
     ts->tv_sec += 1;
   ts->tv_nsec = rem;
 }
-
-static inline void sleep_until(const struct timespec *ts) {
-  if(clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, ts, NULL) == EINTR)
-    sleep_until(ts);
+#elif defined(WINDOWS)
+static inline void set_next_time_point(ULARGE_INTEGER* ts, int frame_rate) {
+	FILETIME ft;
+	GetSystemTimeAsFileTime(&ft);
+	long interval = 10000000 / frame_rate;
+	ts->LowPart = ft.dwLowDateTime;
+	ts->HighPart = ft.dwHighDateTime;
+	ts->QuadPart += interval;
 }
+#endif
+
+#if defined(LINUX) || defined(MACOS)
+static inline void sleep_until(struct timespec *ts) {
+  struct timespec rem;
+  printf("sec: %lld, nsec: %ld\r\n", (long long)ts->tv_sec, ts->tv_nsec);
+  int res = clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, ts, &rem);
+  if(res == EINTR) {
+    printf("nanosleep EINTR\r\n"); fflush(stdout);
+    sleep_until(ts);
+  }
+  if(res == EFAULT) {
+    printf("nanosleep EFAULT\r\n"); fflush(stdout);
+  }
+  if(res == EINVAL) {
+    printf("nanosleep EINVAL\r\n"); fflush(stdout);
+  }
+
+}
+#elif defined(WINDOWS)
+// Slightly modified version lifted from: https://gist.github.com/Youka/4153f12cf2e17a77314c
+static inline void sleep_until(ULARGE_INTEGER *ts) {
+	/* Declarations */
+	HANDLE timer;	/* Timer handle */
+	LARGE_INTEGER li;	/* Time defintion */
+						/* Create timer */
+	if (!(timer = CreateWaitableTimer(NULL, TRUE, NULL)))
+		return;
+	/* Set timer properties */
+	li.QuadPart = ts->QuadPart;
+	if (!SetWaitableTimer(timer, &li, 0, NULL, NULL, FALSE)) {
+		CloseHandle(timer);
+		return;
+	}
+	/* Start & wait for timer */
+	WaitForSingleObject(timer, INFINITE);
+	/* Clean resources */
+	CloseHandle(timer);
+}
+#endif
 
 static inline void vz_begin_frame(VZview *vz_view) {
   glViewport(0, 0, vz_view->width, vz_view->height);
@@ -58,10 +103,9 @@ static inline void vz_end_frame(VZview *vz_view) {
 }
 
 static inline void vz_send_draw(VZview *vz_view) {
-  unsigned time = (vz_view->time.tv_sec * 1000) + (vz_view->time.tv_nsec / 1000000);
+  unsigned time = 0;//(vz_view->time.tv_sec * 1000) + (vz_view->time.tv_nsec / 1000000);
   ERL_NIF_TERM msg = enif_make_tuple2(vz_view->msg_env, ATOM_DRAW, enif_make_uint(vz_view->msg_env, time));
-  enif_send(NULL, &vz_view->view_pid, vz_view->msg_env, msg);
-  enif_clear_env(vz_view->msg_env);
+  enif_send(NULL, &vz_view->view_pid, NULL, msg);
 }
 
 static inline void vz_run(VZview *vz_view) {
@@ -92,7 +136,11 @@ static inline void vz_send_events(VZview *vz_view) {
   }
 }
 
+#if defined(LINUX) || defined(MACOS)
 static inline void vz_wait_for_frame(VZview *vz_view, PuglView *view, struct timespec *ts) {
+#elif defined(WINDOWS)
+static inline void vz_wait_for_frame(VZview *vz_view, PuglView *view, ULARGE_INTEGER *ts) {
+#endif
   if(vz_view->redraw_mode == VZ_MANUAL) {
     enif_mutex_unlock(vz_view->lock);
     puglWaitForEvent(view);
@@ -102,13 +150,18 @@ static inline void vz_wait_for_frame(VZview *vz_view, PuglView *view, struct tim
     enif_mutex_unlock(vz_view->lock);
     sleep_until(ts);
     enif_mutex_lock(vz_view->lock);
-    vz_view->time = *ts;
+    //vz_view->time = *ts;
     set_next_time_point(ts, vz_view->frame_rate);
   }
 }
 
 void* vz_view_thread(void *p) {
+#if defined(LINUX) || defined(MACOS)
   struct timespec ts;
+#elif defined(WINDOWS)
+	ULARGE_INTEGER ts;
+#endif
+
   VZview *vz_view = (VZview*) p;
   PuglView *view;
 
@@ -147,20 +200,14 @@ void* vz_view_thread(void *p) {
   puglShowWindow(view);
 
   while(!vz_view->shutdown) {
-    puglProcessEvents(view);
-
 #ifdef VZ_LOG_TIMING
-    clock_gettime(CLOCK_MONOTONIC, &ts1);
+	  clock_gettime(CLOCK_MONOTONIC, &ts1);
 #endif
+
+	  puglProcessEvents(view);
     vz_send_events(vz_view);
-    puglEnterContext(view);
-    if(vz_view->redraw_mode == VZ_INTERVAL || vz_view->redraw) {
-      vz_begin_frame(vz_view);
-      vz_send_draw(vz_view);
-      vz_run(vz_view);
-      vz_end_frame(vz_view);
-    }
-    puglLeaveContext(view, true);
+    if (vz_view->redraw_mode == VZ_INTERVAL || vz_view->redraw)
+      puglPostRedisplay(view);
 
 #ifdef VZ_LOG_TIMING
     clock_gettime(CLOCK_MONOTONIC, &ts2);
@@ -173,7 +220,7 @@ void* vz_view_thread(void *p) {
       }
       double_array_clear(timings);
       avg /= (double)num_frames;
-      LOG("average of %d frames: %.3f ms\r\n", num_frames, avg);
+      printf("average of %d frames: %.3f ms\r\n", num_frames, avg);
     }
 #endif
 
@@ -196,4 +243,13 @@ void* vz_view_thread(void *p) {
 
   enif_mutex_unlock(vz_view->lock);
   return NULL;
+}
+
+void vz_draw(VZview *vz_view) {
+  puglEnterContext(vz_view->view);
+  vz_begin_frame(vz_view);
+  vz_send_draw(vz_view);
+  vz_run(vz_view);
+  vz_end_frame(vz_view);
+  puglLeaveContext(vz_view->view, true);
 }

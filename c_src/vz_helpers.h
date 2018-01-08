@@ -7,7 +7,7 @@
 #define OK(msg) enif_make_tuple2(env, ATOM_OK, msg)
 #define BADARG enif_make_badarg(env)
 #define __UNUSED(v) ((void)(v))
-#define LOG(fmt, ...) do { fprintf(stderr, fmt, __VA_ARGS__); } while (0)
+#define __EMPTY_STRUCT char __dummy;
 
 #ifndef MIN
 #    define MIN(a, b) (((a) < (b)) ? (a) : (b))
