@@ -51,20 +51,9 @@ static inline void set_next_time_point(ULARGE_INTEGER* ts, int frame_rate) {
 
 #if defined(LINUX) || defined(MACOS)
 static inline void sleep_until(struct timespec *ts) {
-  struct timespec rem;
-  printf("sec: %lld, nsec: %ld\r\n", (long long)ts->tv_sec, ts->tv_nsec);
-  int res = clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, ts, &rem);
-  if(res == EINTR) {
-    printf("nanosleep EINTR\r\n"); fflush(stdout);
+  if(clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, ts, NULL) == EINTR) {
     sleep_until(ts);
   }
-  if(res == EFAULT) {
-    printf("nanosleep EFAULT\r\n"); fflush(stdout);
-  }
-  if(res == EINVAL) {
-    printf("nanosleep EINVAL\r\n"); fflush(stdout);
-  }
-
 }
 #elif defined(WINDOWS)
 // Slightly modified version lifted from: https://gist.github.com/Youka/4153f12cf2e17a77314c
