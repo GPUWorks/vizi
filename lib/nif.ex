@@ -101,7 +101,7 @@ defmodule Vizi.NIF do
   def text_glyph_positions(_ctx, _x, _y, _string), do: :erlang.nif_error(:vz_nif_lib_not_loaded)
   def text_metrics(_ctx), do: :erlang.nif_error(:vz_nif_lib_not_loaded)
   def text_break_lines(_ctx, _break_row_width, _string), do: :erlang.nif_error(:vz_nif_lib_not_loaded)
-  def create_bitmap(_width, _height), do: :erlang.nif_error(:vz_nif_lib_not_loaded)
+  def create_bitmap(_ctx, _width, _height), do: :erlang.nif_error(:vz_nif_lib_not_loaded)
   def bitmap_size(_bm), do: :erlang.nif_error(:vz_nif_lib_not_loaded)
   def bitmap_put(_bm, _ndx, _r, _g, _b, _a), do: :erlang.nif_error(:vz_nif_lib_not_loaded)
   def bitmap_put_bin(_bm, _ndx, _rgba), do: :erlang.nif_error(:vz_nif_lib_not_loaded)

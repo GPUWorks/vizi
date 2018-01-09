@@ -7,7 +7,7 @@
 
 VZ_ARRAY_DEFINE(VZop)
 VZ_ARRAY_DEFINE(VZev)
-VZ_ARRAY_DEFINE(int)
+VZ_ARRAY_DEFINE(VZres)
 VZ_ARRAY_DEFINE(double)
 
 
@@ -32,7 +32,7 @@ VZview* vz_alloc_view(ErlNifEnv* env) {
   enif_self(env, &vz_view->view_pid);
   vz_view->op_array = VZop_array_new(256);
   vz_view->ev_array = VZev_array_new(16);
-  vz_view->res_array = int_array_new(256);
+  vz_view->res_array = VZres_array_new(256);
   vz_view->msg_env = enif_alloc_env();
   vz_view->ev_env = enif_alloc_env();
   vz_view->busy = false;
@@ -80,7 +80,6 @@ void vz_view_dtor(ErlNifEnv *env, void *resource) {
     }
     VZop_array_free(vz_view->op_array);
     VZev_array_free(vz_view->ev_array);
-    int_array_free(vz_view->res_array);
   }
 }
 
@@ -112,6 +111,12 @@ VZimage* vz_alloc_image(VZview *view, int handle) {
 
   return image;
 }
+
+void vz_image_dtor(ErlNifEnv *env, void *resource) {
+  VZimage *image = (VZimage*)resource;
+  nvgDeleteImage(image->view->ctx, image->handle);
+}
+
 
 
 ErlNifResourceType *vz_font_res;
@@ -214,4 +219,18 @@ ERL_NIF_TERM vz_make_resource(ErlNifEnv* env, void* obj) {
   ERL_NIF_TERM res = enif_make_resource(env, obj);
   enif_release_resource(obj);
   return res;
+}
+
+ERL_NIF_TERM vz_make_managed_resource(ErlNifEnv* env, void* obj, VZview *vz_view) {
+  ERL_NIF_TERM res = enif_make_resource(env, obj);
+  VZres_array_push(vz_view->res_array, obj);
+  return res;
+}
+
+void vz_release_managed_resources(VZview *vz_view) {
+  VZres_array *a = vz_view->res_array;
+  for(unsigned i = a->start_pos; i < a->end_pos; ++i) {
+    enif_release_resource(a->array[i]);
+  }
+  VZres_array_clear(a);
 }

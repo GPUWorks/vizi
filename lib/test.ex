@@ -10,26 +10,34 @@ defmodule TestC1 do
   end
 
   def init(el, ctx) do
-    bm = Bitmap.create(500, 300)
+    bm = Bitmap.create(ctx, 500, 300)
     Enum.each(0..(Bitmap.size(bm) - 1), fn n ->
       Bitmap.put(bm, n, rem(n, 256), 255 - rem(n, 256), 0, 255)
     end)
     img = Image.from_bitmap(ctx, bm)
-    el = put_in(el.params.img, img)
-    {:ok, put_in(el.params.bm, bm)}
+    {:ok, Vizi.Element.update_params!(el,
+    img: fn _ -> img end,
+    bm: fn _ -> bm end)}
   end
 
   @tau 6.28318530718
 
   def update(el, ctx) do
+    #Image.delete(ctx, el.params.img)
+    cnt = el.params.cnt
+    bm = Bitmap.create(ctx, 500, 300)
+    Enum.each(0..(Bitmap.size(bm) - 1), fn n ->
+      Bitmap.put(bm, n, rem(n + cnt, 256), 255 - rem(n + cnt, 256), 0, 255)
+    end)
+    Image.update_from_bitmap(ctx, el.params.img, bm)
     el = Vizi.Element.update_attributes(el, rotate: fn x -> if x >= @tau, do: 0, else: x + 0.001 end)
     {:ok, Vizi.Element.update_params!(el,
-    img: fn _ -> Image.create(ctx, "c_src/nanovg/example/images/image#{el.params.cnt}.jpg", [:repeat_x, :repeat_y]) end,
-    cnt: fn x -> if x == 12, do: 1, else: x + 1 end)}
+    #img: fn _ -> img end,
+    cnt: fn x -> if x == 255, do: 0, else: x + 1 end)}
   end
 
   def draw(params, width, height, ctx) do
-    paint = Paint.image_pattern(ctx, 0, 0, 100, 100, 45, params.img)
+    paint = Paint.image_pattern(ctx, 0, 0, 500, 300, 0, params.img)
 
     ctx
     |> begin_path()
@@ -134,7 +142,7 @@ defmodule T do
   use Vizi.View
 
   def s do
-    {:ok, _pid} = Vizi.View.start_link(__MODULE__, nil, redraw_mode: :interval, frame_rate: 2)
+    {:ok, _pid} = Vizi.View.start_link(__MODULE__, nil, redraw_mode: :interval, frame_rate: 30)
   end
 
   def init(_args) do

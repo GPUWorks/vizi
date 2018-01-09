@@ -597,19 +597,18 @@ VZ_ASYNC_DECL(
 VZ_ASYNC_DECL(
   vz_stroke_paint,
   {
-    NVGpaint paint;
+    NVGpaint *paint;
   },
   {
-    nvgStrokePaint(ctx, args->paint);
+    nvgStrokePaint(ctx, *args->paint);
   },
   {
     NVGpaint *paint;
 
     if(!(argc == 2 &&
-        enif_get_resource(env, argv[1], vz_paint_res, (void**)&paint))) {
+        enif_get_resource(env, argv[1], vz_paint_res, (void**)&args->paint))) {
       goto err;
     }
-    args->paint = *paint;
   }
 );
 
@@ -632,19 +631,18 @@ VZ_ASYNC_DECL(
 VZ_ASYNC_DECL(
   vz_fill_paint,
   {
-    NVGpaint paint;
+    NVGpaint *paint;
   },
   {
-    nvgFillPaint(ctx, args->paint);
+    nvgFillPaint(ctx, *args->paint);
   },
   {
     NVGpaint *paint;
 
     if(!(argc == 2 &&
-        enif_get_resource(env, argv[1], vz_paint_res, (void**)&paint))) {
+        enif_get_resource(env, argv[1], vz_paint_res, (void**)&args->paint))) {
       goto err;
     }
-    args->paint = *paint;
   }
 );
 
@@ -1087,7 +1085,6 @@ VZ_ASYNC_DECL(
 
     handle = nvgCreateImage(ctx, args->file_path, args->flags);
     if(handle == 0) VZ_HANDLER_SEND_BADARG;
-    int_array_push(vz_view->res_array, handle);
     image = vz_alloc_image(vz_view, handle);
     VZ_HANDLER_SEND(vz_make_resource(vz_view->msg_env, image));
   },
@@ -1113,9 +1110,8 @@ VZ_ASYNC_DECL(
 
     handle = nvgCreateImageMem(ctx, args->flags, args->bin.data, args->bin.size);
     if(handle == 0) VZ_HANDLER_SEND_BADARG;
-    int_array_push(vz_view->res_array, handle);
     image = vz_alloc_image(vz_view, handle);
-    VZ_HANDLER_SEND(vz_make_resource(vz_view->msg_env, image));
+    VZ_HANDLER_SEND(vz_make_managed_resource(vz_view->msg_env, image, vz_view));
   },
   {
     if(!(argc == 3 &&
@@ -1141,9 +1137,8 @@ VZ_ASYNC_DECL(
 
     handle = nvgCreateImageRGBA(ctx, args->w, args->h, args->flags, args->bin.data);
     if(handle == 0) VZ_HANDLER_SEND_BADARG;
-    int_array_push(vz_view->res_array, handle);
     image = vz_alloc_image(vz_view, handle);
-    VZ_HANDLER_SEND(vz_make_resource(vz_view->msg_env, image));
+    VZ_HANDLER_SEND(vz_make_managed_resource(vz_view->msg_env, image, vz_view));
   },
   {
     if(!(argc == 5 &&
@@ -1169,10 +1164,9 @@ VZ_ASYNC_DECL(
 
     handle = nvgCreateImageRGBA(ctx, args->bm->width, args->bm->height, args->flags, args->bm->buffer);
     if(handle == 0) VZ_HANDLER_SEND_BADARG;
-    int_array_push(vz_view->res_array, handle);
     image = vz_alloc_image(vz_view, handle);
 
-    VZ_HANDLER_SEND(vz_make_resource(vz_view->msg_env, image));
+    VZ_HANDLER_SEND(vz_make_managed_resource(vz_view->msg_env, image, vz_view));
   },
   {
     if(!(argc == 3 &&
@@ -1289,7 +1283,7 @@ static ERL_NIF_TERM vz_linear_gradient(ErlNifEnv* env, int argc, const ERL_NIF_T
 
   paint = vz_alloc_paint(nvgLinearGradient(vz_view->ctx, sx, sy, ex, ey, icol, ocol));
 
-  return vz_make_resource(env, paint);
+  return vz_make_managed_resource(env, paint, vz_view);
 
   err:
   return BADARG;
@@ -1317,7 +1311,7 @@ static ERL_NIF_TERM vz_box_gradient(ErlNifEnv* env, int argc, const ERL_NIF_TERM
 
   paint = vz_alloc_paint(nvgBoxGradient(vz_view->ctx, x, y, w, h, r, f, icol, ocol));
 
-  return vz_make_resource(env, paint);
+  return vz_make_managed_resource(env, paint, vz_view);
 
   err:
   return BADARG;
@@ -1343,7 +1337,7 @@ static ERL_NIF_TERM vz_radial_gradient(ErlNifEnv* env, int argc, const ERL_NIF_T
 
   paint = vz_alloc_paint(nvgRadialGradient(vz_view->ctx, cx, cy, inr, outr, icol, ocol));
 
-  return vz_make_resource(env, paint);
+  return vz_make_managed_resource(env, paint, vz_view);
 
   err:
   return BADARG;
@@ -1371,7 +1365,7 @@ static ERL_NIF_TERM vz_image_pattern(ErlNifEnv* env, int argc, const ERL_NIF_TER
 
   paint = vz_alloc_paint(nvgImagePattern(vz_view->ctx, ox, oy, ex, ey, angle, image->handle, alpha));
 
-  return vz_make_resource(env, paint);
+  return vz_make_managed_resource(env, paint, vz_view);
 
   err:
   return BADARG;
@@ -2201,18 +2195,20 @@ VZ_ASYNC_DECL(
 );
 
 static ERL_NIF_TERM vz_create_bitmap(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) {
+  VZview *vz_view;
   unsigned width, height;
   VZbitmap *bm;
 
-  if(!(argc == 2 &&
-       enif_get_uint(env, argv[0], &width) &&
-       enif_get_uint(env, argv[1], &height))) {
+  if(!(argc == 3 &&
+       enif_get_resource(env, argv[0], vz_view_res, (void**)&vz_view) &&
+       enif_get_uint(env, argv[1], &width) &&
+       enif_get_uint(env, argv[2], &height))) {
     return BADARG;
   }
 
   bm = vz_alloc_bitmap(width, height);
 
-  return vz_make_resource(env, bm);
+  return vz_make_managed_resource(env, bm, vz_view);
 }
 
 static ERL_NIF_TERM vz_bm_size(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) {
@@ -2311,7 +2307,7 @@ static int vz_load(ErlNifEnv* env, void** priv_data, ERL_NIF_TERM load_info)
 
   ErlNifResourceFlags flags = ERL_NIF_RT_CREATE | ERL_NIF_RT_TAKEOVER;
   vz_view_res = enif_open_resource_type(env, NULL, "vz_view_res", vz_view_dtor, flags, NULL);
-  vz_image_res = enif_open_resource_type(env, NULL, "vz_image_res", NULL, flags, NULL);
+  vz_image_res = enif_open_resource_type(env, NULL, "vz_image_res", vz_image_dtor, flags, NULL);
   vz_font_res = enif_open_resource_type(env, NULL, "vz_font_res", NULL, flags, NULL);
   vz_paint_res = enif_open_resource_type(env, NULL, "vz_paint_res", NULL, flags, NULL);
   vz_matrix_res = enif_open_resource_type(env, NULL, "vz_matrix_res", NULL, flags, NULL);
@@ -2416,7 +2412,7 @@ static ErlNifFunc nif_funcs[] =
     {"text_glyph_positions", 4, vz_text_glyph_positions},
     {"text_metrics", 1, vz_text_metrics},
     {"text_break_lines", 3, vz_text_break_lines},
-    {"create_bitmap", 2, vz_create_bitmap},
+    {"create_bitmap", 3, vz_create_bitmap},
     {"bitmap_size", 1, vz_bm_size},
     {"bitmap_put", 6, vz_bm_put},
     {"bitmap_put_bin", 3, vz_bm_put_bin},

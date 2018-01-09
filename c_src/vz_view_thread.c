@@ -213,15 +213,12 @@ void* vz_view_thread(void *p) {
       printf("average of %d frames: %.3f ms\r\n", num_frames, avg);
     }
 #endif
-
+    vz_release_managed_resources(vz_view);
     vz_wait_for_frame(vz_view, view, &ts);
   }
   shutdown:
   enif_send(NULL, &vz_view->view_pid, NULL, ATOM_SHUTDOWN);
   if(vz_view->ctx) {
-    for(unsigned i = 0; i < vz_view->res_array->end_pos; ++i) {
-      nvgDeleteImage(vz_view->ctx, vz_view->res_array->array[i]);
-    }
     nvgDeleteGL2(vz_view->ctx);
   }
   if(view)
