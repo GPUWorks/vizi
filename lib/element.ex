@@ -217,6 +217,8 @@ defmodule Vizi.Element do
     children = for x <- children do
       if Enum.any?(tags, &(&1 in x.tags)) do
         fun.(x)
+      else
+        x
       end
     end
     %Element{parent|children: children}
