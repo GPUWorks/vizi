@@ -603,8 +603,6 @@ VZ_ASYNC_DECL(
     nvgStrokePaint(ctx, *args->paint);
   },
   {
-    NVGpaint *paint;
-
     if(!(argc == 2 &&
         enif_get_resource(env, argv[1], vz_paint_res, (void**)&args->paint))) {
       goto err;
@@ -637,8 +635,6 @@ VZ_ASYNC_DECL(
     nvgFillPaint(ctx, *args->paint);
   },
   {
-    NVGpaint *paint;
-
     if(!(argc == 2 &&
         enif_get_resource(env, argv[1], vz_paint_res, (void**)&args->paint))) {
       goto err;
