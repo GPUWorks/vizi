@@ -1167,10 +1167,7 @@ VZ_ASYNC_DECL(
     int handle;
     VZimage *image;
 
-    unsigned char *buffer = enif_alloc(args->bm->byte_size);
-    memcpy(buffer, args->bm->buffer, args->bm->byte_size);
-
-    handle = nvgCreateImageRGBA(ctx, args->bm->width, args->bm->height, args->flags, buffer);
+    handle = nvgCreateImageRGBA(ctx, args->bm->width, args->bm->height, args->flags, args->bm->buffer);
     if(handle == 0) VZ_HANDLER_SEND_BADARG;
     int_array_push(vz_view->res_array, handle);
     image = vz_alloc_image(vz_view, handle);
