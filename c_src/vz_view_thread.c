@@ -88,7 +88,6 @@ static inline void vz_begin_frame(VZview *vz_view) {
 
 static inline void vz_end_frame(VZview *vz_view) {
   nvgEndFrame(vz_view->ctx);
-  vz_view->redraw = false;
 }
 
 static inline void vz_send_draw(VZview *vz_view) {
@@ -118,11 +117,12 @@ static inline void vz_run(VZview *vz_view) {
 static inline void vz_send_events(VZview *vz_view) {
   VZev_array *a = vz_view->ev_array;
 
-  if(a->end_pos > 0) {
+  if(a->end_pos > 0 || vz_view->force_send_events) {
     ERL_NIF_TERM events = enif_make_list_from_array(vz_view->ev_env, a->array, a->end_pos - a->start_pos);
     enif_send(NULL, &vz_view->view_pid, vz_view->ev_env, enif_make_tuple2(vz_view->ev_env, ATOM_EVENT, events));
     enif_clear_env(vz_view->ev_env);
     VZev_array_clear(a);
+    vz_view->force_send_events = false;
   }
 }
 
@@ -194,9 +194,9 @@ void* vz_view_thread(void *p) {
 	  clock_gettime(CLOCK_MONOTONIC, &ts1);
 #endif
 
-	  puglProcessEvents(view);
+    puglProcessEvents(view);
     vz_send_events(vz_view);
-    if (vz_view->redraw_mode == VZ_INTERVAL || vz_view->redraw)
+    if (vz_view->redraw_mode == VZ_INTERVAL)
       puglPostRedisplay(view);
 
 #ifdef VZ_LOG_TIMING

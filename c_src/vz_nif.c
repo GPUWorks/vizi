@@ -322,9 +322,45 @@ static ERL_NIF_TERM vz_redraw(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[
        enif_get_resource(env, argv[0], vz_view_res, (void**)&vz_view))) {
     return BADARG;
   }
+  enif_mutex_lock(vz_view->lock);
+
+#ifdef LINUX
+  Display *display = XOpenDisplay(0);
+  Window window = puglGetNativeWindow(vz_view->view);
+  XExposeEvent event;
+
+  event.type = Expose;
+  event.display = display;
+  event.window = window;
+  event.x = 0;
+  event.y = 0;
+  event.width = vz_view->width;
+  event.height = vz_view->height;
+  event.count = 0;
+
+  XSendEvent(display, window, False, ExposureMask, (XEvent*)&event);
+  XFlush(display);
+#elif defined(WINDOWS)
+  HWND hwnd = puglGetNativeWindow(vz_view->view);
+  InvalidateRect(hwnd, NULL, FALSE);
+#endif
+
+  enif_mutex_unlock(vz_view->lock);
+
+  return ATOM_OK;
+}
+
+
+static ERL_NIF_TERM vz_force_send_events(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) {
+  VZview *vz_view;
+
+  if(!(argc == 1 &&
+       enif_get_resource(env, argv[0], vz_view_res, (void**)&vz_view))) {
+    return BADARG;
+  }
 
   enif_mutex_lock(vz_view->lock);
-  vz_view->redraw = true;
+  vz_view->force_send_events = true;
   enif_mutex_unlock(vz_view->lock);
 
   return ATOM_OK;
@@ -2256,42 +2292,6 @@ static ERL_NIF_TERM vz_bm_put_bin(ErlNifEnv* env, int argc, const ERL_NIF_TERM a
   return argv[0];
 }
 
-static ERL_NIF_TERM vz_send_wakeup_event(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) {
-  VZview *vz_view;
-
-  if(!(argc == 1 &&
-       enif_get_resource(env, argv[0], vz_view_res, (void**)&vz_view))) {
-    return BADARG;
-  }
-  enif_mutex_lock(vz_view->lock);
-
-#ifdef LINUX
-  Display *display = XOpenDisplay(0);
-  Window window = puglGetNativeWindow(vz_view->view);
-  XExposeEvent event;
-
-  event.type = Expose;
-  event.display = display;
-  event.window = window;
-  event.x = 0;
-  event.y = 0;
-  event.width = vz_view->width;
-  event.height = vz_view->height;
-  event.count = 0;
-
-  XSendEvent(display, window, False, ExposureMask, (XEvent*)&event);
-  XFlush(display);
-#elif defined(WINDOWS)
-  HWND hwnd = puglGetNativeWindow(vz_view->view);
-  InvalidateRect(hwnd, NULL, FALSE);
-#endif
-
-  enif_mutex_unlock(vz_view->lock);
-
-  return ATOM_OK;
-}
-
-
 
 /*
 NIF boiler plate
@@ -2320,6 +2320,7 @@ static ErlNifFunc nif_funcs[] =
     {"create_view", 1, vz_create_view},
     {"ready", 1, vz_ready},
     {"redraw", 1, vz_redraw},
+    {"force_send_events", 1, vz_force_send_events},
     {"setup_element", 2, vz_setup_element},
     {"global_composite_operation", 2, vz_global_composite_operation},
     {"global_composite_blend_func", 3, vz_global_composite_blend_func},
@@ -2411,8 +2412,7 @@ static ErlNifFunc nif_funcs[] =
     {"create_bitmap", 3, vz_create_bitmap},
     {"bitmap_size", 1, vz_bm_size},
     {"bitmap_put", 6, vz_bm_put},
-    {"bitmap_put_bin", 3, vz_bm_put_bin},
-    {"send_wakeup_event", 1, vz_send_wakeup_event}
+    {"bitmap_put_bin", 3, vz_bm_put_bin}
 };
 
 ERL_NIF_INIT(Elixir.Vizi.NIF, nif_funcs, &vz_load, NULL, NULL, NULL)

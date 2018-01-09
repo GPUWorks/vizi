@@ -51,7 +51,7 @@ struct VZview {
   bool busy;
   bool shutdown;
   bool resizable;
-  bool redraw;
+  bool force_send_events;
   int width;
   int height;
   int init_width;

@@ -100,6 +100,11 @@ defmodule TestC2 do
     IO.inspect ev
     :cont
   end
+  def handle_event(c, %Events.Custom{} = ev) do
+    IO.puts "TestC3 received CUSTOM event: #{inspect ev}"
+    {:cont, Vizi.Element.update_attributes(c, rotate: fn x -> x + 1 end)}
+  end
+
   def handle_event(_c, _ev) do
     :cont
   end
@@ -127,9 +132,6 @@ defmodule TestC3 do
     |> text(0, 40, "Hello World!")
   end
 
-  def handle_event(c, %Events.Custom{}) do
-    {:done, put_in(c.params.color, rgba(255, 0, 0))}
-  end
   def handle_event(_c, ev) do
     IO.puts "TestC3 received event: #{inspect ev}"
     :cont
@@ -148,7 +150,7 @@ defmodule T do
   def init(_args) do
     root = TestC1.create(x: 100, y: 100, width: 500, height: 300, children:
       for n <- 1..100 do
-        TestC2.create(x: n, y: n, width: 100, height: 100, alpha: 0.01, tags: [:a, :b])
+        TestC2.create(x: n, y: n, width: 100, height: 100, alpha: 0.2, tags: [:a, :b])
       end
     )
     {:ok, root, nil}

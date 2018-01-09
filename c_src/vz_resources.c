@@ -38,7 +38,7 @@ VZview* vz_alloc_view(ErlNifEnv* env) {
   vz_view->busy = false;
   vz_view->shutdown = false;
   vz_view->resizable = false;
-  vz_view->redraw = true;
+  vz_view->force_send_events = false;
   vz_view->frame_rate = 25;
   vz_view->redraw_mode = VZ_MANUAL;
   vz_view->width = 800;

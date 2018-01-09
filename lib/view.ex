@@ -210,21 +210,16 @@ defmodule Vizi.View do
     callback_cast(request, state)
   end
 
-  def handle_cast(:send_wakeup_event, state) do
-    NIF.send_wakeup_event(state.context)
-    {:noreply, state}
-  end
-
   def handle_cast(%Events.Custom{} = ev, state) do
+    NIF.force_send_events(state.context)
     if state.redraw_mode == :manual do
-      NIF.send_wakeup_event(state.context)
+        NIF.redraw(state.context)
     end
-    {:noreply, %{state|custom_events: [%{ev|context: state.context} | state.custom_events]}}
+    {:noreply, %{state|custom_events: [ev | state.custom_events]}}
   end
 
   def handle_cast(:vz_redraw, state) do
     NIF.redraw(state.context)
-    NIF.send_wakeup_event(state.context)
     {:noreply, state}
   end
 
