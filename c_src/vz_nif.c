@@ -1261,7 +1261,7 @@ VZ_ASYNC_DECL(
   {
     VZimage *image;
 
-    if(!(argc == 3 &&
+    if(!(argc == 2 &&
         enif_get_resource(env, argv[1], vz_image_res, (void**)&image))) {
       goto err;
     }
