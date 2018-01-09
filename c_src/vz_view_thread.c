@@ -233,10 +233,8 @@ void* vz_view_thread(void *p) {
 }
 
 void vz_draw(VZview *vz_view) {
-  puglEnterContext(vz_view->view);
   vz_begin_frame(vz_view);
   vz_send_draw(vz_view);
   vz_run(vz_view);
   vz_end_frame(vz_view);
-  puglLeaveContext(vz_view->view, true);
 }

@@ -1,6 +1,6 @@
 [submodule "c_src/pugl"]
 	path = c_src/pugl
-	url = https://github.com/zambal/pugl.git
+	url = https://github.com/drobilla/pugl.git
 [submodule "c_src/nanovg"]
 	path = c_src/nanovg
 	url = https://github.com/memononen/nanovg.git
