@@ -163,30 +163,24 @@ void* vz_view_thread(void *p) {
 #endif
 
   enif_mutex_lock(vz_view->lock);
-
   set_next_time_point(&ts, vz_view->frame_rate);
-  view = puglInit(NULL, NULL);
-  vz_view->view = view;
 
+  view = puglInit(NULL, NULL);
   puglSetHandle(view, vz_view);
   puglSetEventFunc(view, vz_on_event);
   puglInitContextType(view, PUGL_GL);
-  if(vz_view->min_width > 0 && vz_view->min_height > 0)
-    puglInitWindowMinSize(view, vz_view->min_width, vz_view->min_height);
+  puglInitWindowMinSize(view, vz_view->min_width, vz_view->min_height);
   puglInitResizable(view, vz_view->resizable);
-
-  if(vz_view->parent)
-    puglInitWindowParent(view, vz_view->parent);
+  puglInitWindowParent(view, vz_view->parent);
   puglInitWindowSize(view, vz_view->width, vz_view->height);
   puglCreateWindow(view, vz_view->title);
 
   puglEnterContext(view);
-
   if (!(glewInit() == GLEW_OK &&
         (vz_view->ctx = nvgCreateGL2(NVG_ANTIALIAS|NVG_STENCIL_STROKES))))
     goto shutdown;
-
   puglLeaveContext(view, false);
+
   puglShowWindow(view);
 
   while(!vz_view->shutdown) {
