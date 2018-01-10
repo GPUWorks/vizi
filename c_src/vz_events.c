@@ -99,7 +99,6 @@ static ERL_NIF_TERM vz_make_button_event_struct(ErlNifEnv* env, const PuglEventB
   ERL_NIF_TERM type = event->type == PUGL_BUTTON_PRESS ? ATOM_BUTTON_PRESS_EVENT_TYPE : ATOM_BUTTON_RELEASE_EVENT_TYPE;
 
   enif_make_map_put(env, map, ATOM__STRUCT__, ATOM_BUTTON_EVENT, &map);
-  enif_make_map_put(env, map, ATOM_CONTEXT, ATOM_NIL, &map);
   enif_make_map_put(env, map, ATOM_TYPE, type, &map);
   enif_make_map_put(env, map, ATOM_TIME, enif_make_uint(env, event->time), &map);
   enif_make_map_put(env, map, ATOM_X, enif_make_double(env, event->x / width_factor), &map);
@@ -118,7 +117,6 @@ static ERL_NIF_TERM vz_make_configure_event_struct(ErlNifEnv* env, const PuglEve
   ERL_NIF_TERM map = enif_make_new_map(env);
 
   enif_make_map_put(env, map, ATOM__STRUCT__, ATOM_CONFIGURE_EVENT, &map);
-  enif_make_map_put(env, map, ATOM_CONTEXT, ATOM_NIL, &map);
   enif_make_map_put(env, map, ATOM_TYPE, ATOM_CONFIGURE_EVENT_TYPE, &map);
   enif_make_map_put(env, map, ATOM_X, enif_make_double(env, event->x), &map);
   enif_make_map_put(env, map, ATOM_Y, enif_make_double(env, event->y), &map);
@@ -132,7 +130,6 @@ static ERL_NIF_TERM vz_make_expose_event_struct(ErlNifEnv* env, const PuglEventE
   ERL_NIF_TERM map = enif_make_new_map(env);
 
   enif_make_map_put(env, map, ATOM__STRUCT__, ATOM_EXPOSE_EVENT, &map);
-  enif_make_map_put(env, map, ATOM_CONTEXT, ATOM_NIL, &map);
   enif_make_map_put(env, map, ATOM_TYPE, ATOM_EXPOSE_EVENT_TYPE, &map);
   enif_make_map_put(env, map, ATOM_X, enif_make_double(env, event->x), &map);
   enif_make_map_put(env, map, ATOM_Y, enif_make_double(env, event->y), &map);
@@ -148,7 +145,6 @@ static ERL_NIF_TERM vz_make_close_event_struct(ErlNifEnv* env, const PuglEventCl
   ERL_NIF_TERM map = enif_make_new_map(env);
 
   enif_make_map_put(env, map, ATOM__STRUCT__, ATOM_CLOSE_EVENT, &map);
-  enif_make_map_put(env, map, ATOM_CONTEXT, ATOM_NIL, &map);
   enif_make_map_put(env, map, ATOM_TYPE, ATOM_CLOSE_EVENT_TYPE, &map);
 
   return map;
@@ -162,7 +158,6 @@ static ERL_NIF_TERM vz_make_key_event_struct(ErlNifEnv* env, const PuglEventKey*
   memcpy(bin.data, event->utf8, 8);
 
   enif_make_map_put(env, map, ATOM__STRUCT__, ATOM_KEY_EVENT, &map);
-  enif_make_map_put(env, map, ATOM_CONTEXT, ATOM_NIL, &map);
   enif_make_map_put(env, map, ATOM_TYPE, type, &map);
   enif_make_map_put(env, map, ATOM_TIME, enif_make_uint(env, event->time), &map);
   enif_make_map_put(env, map, ATOM_X, enif_make_double(env, event->x / width_factor), &map);
@@ -186,7 +181,6 @@ static ERL_NIF_TERM vz_make_crossing_event_struct(ErlNifEnv* env, const PuglEven
   ERL_NIF_TERM type = event->type == PUGL_ENTER_NOTIFY ? ATOM_ENTER_MOTION_EVENT_TYPE : ATOM_LEAVE_MOTION_EVENT_TYPE;
 
   enif_make_map_put(env, map, ATOM__STRUCT__, ATOM_CROSSING_EVENT, &map);
-  enif_make_map_put(env, map, ATOM_CONTEXT, ATOM_NIL, &map);
   enif_make_map_put(env, map, ATOM_TYPE, type, &map);
   enif_make_map_put(env, map, ATOM_TIME, enif_make_uint(env, event->time), &map);
   enif_make_map_put(env, map, ATOM_X, enif_make_double(env, event->x / width_factor), &map);
@@ -204,7 +198,6 @@ static ERL_NIF_TERM vz_make_crossing_event_struct(ErlNifEnv* env, const PuglEven
 static ERL_NIF_TERM vz_make_motion_event_struct(ErlNifEnv* env, const PuglEventMotion* event, double width_factor, double height_factor) {
   ERL_NIF_TERM map = enif_make_new_map(env);
   enif_make_map_put(env, map, ATOM__STRUCT__, ATOM_MOTION_EVENT, &map);
-  enif_make_map_put(env, map, ATOM_CONTEXT, ATOM_NIL, &map);
   enif_make_map_put(env, map, ATOM_TYPE, ATOM_MOTION_EVENT_TYPE, &map);
   enif_make_map_put(env, map, ATOM_TIME, enif_make_uint(env, event->time), &map);
   enif_make_map_put(env, map, ATOM_X, enif_make_double(env, event->x / width_factor), &map);
@@ -224,7 +217,6 @@ static ERL_NIF_TERM vz_make_scroll_event_struct(ErlNifEnv* env, const PuglEventS
   ERL_NIF_TERM map = enif_make_new_map(env);
 
   enif_make_map_put(env, map, ATOM__STRUCT__, ATOM_SCROLL_EVENT, &map);
-  enif_make_map_put(env, map, ATOM_CONTEXT, ATOM_NIL, &map);
   enif_make_map_put(env, map, ATOM_TYPE, ATOM_SCROLL_EVENT_TYPE, &map);
   enif_make_map_put(env, map, ATOM_TIME, enif_make_uint(env, event->time), &map);
   enif_make_map_put(env, map, ATOM_X, enif_make_double(env, event->x / width_factor), &map);
@@ -245,7 +237,6 @@ static ERL_NIF_TERM vz_make_focus_event_struct(ErlNifEnv* env, const PuglEventFo
   ERL_NIF_TERM type = event->type == PUGL_FOCUS_IN ? ATOM_FOCUS_IN_EVENT_TYPE : ATOM_FOCUS_OUT_EVENT_TYPE;
 
   enif_make_map_put(env, map, ATOM__STRUCT__, ATOM_FOCUS_EVENT, &map);
-  enif_make_map_put(env, map, ATOM_CONTEXT, ATOM_NIL, &map);
   enif_make_map_put(env, map, ATOM_TYPE, type, &map);
   enif_make_map_put(env, map, ATOM_GRAB, (event->grab ? ATOM_TRUE : ATOM_FALSE), &map);
 
