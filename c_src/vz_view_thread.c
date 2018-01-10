@@ -182,6 +182,7 @@ void* vz_view_thread(void *p) {
   puglLeaveContext(view, false);
 
   puglShowWindow(view);
+  vz_view->view = view;
 
   while(!vz_view->shutdown) {
 #ifdef VZ_LOG_TIMING
