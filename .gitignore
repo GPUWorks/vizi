@@ -23,7 +23,8 @@ erl_crash.dump
 *.ez
 
 *.o
-*.so
-*.dll
+
+vz_nif.so
+vz_nif.dll
 
 mix.lock
