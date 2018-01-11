@@ -341,7 +341,7 @@ static ERL_NIF_TERM vz_redraw(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[
   XSendEvent(display, window, False, ExposureMask, (XEvent*)&event);
   XFlush(display);
 #elif defined(WINDOWS)
-  HWND hwnd = puglGetNativeWindow(vz_view->view);
+  HWND hwnd = (HWND)puglGetNativeWindow(vz_view->view);
   InvalidateRect(hwnd, NULL, FALSE);
 #endif
 
