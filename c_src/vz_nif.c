@@ -2301,6 +2301,9 @@ static int vz_load(ErlNifEnv* env, void** priv_data, ERL_NIF_TERM load_info)
 {
   __UNUSED(load_info);
 
+  VZpriv *priv = vz_alloc_priv();
+  *priv_data = priv;
+
   ErlNifResourceFlags flags = ERL_NIF_RT_CREATE | ERL_NIF_RT_TAKEOVER;
   vz_view_res = enif_open_resource_type(env, NULL, "vz_view_res", vz_view_dtor, flags, NULL);
   vz_image_res = enif_open_resource_type(env, NULL, "vz_image_res", vz_image_dtor, flags, NULL);
@@ -2312,6 +2315,15 @@ static int vz_load(ErlNifEnv* env, void** priv_data, ERL_NIF_TERM load_info)
   vz_make_atoms(env);
 
   return 0;
+}
+
+static void vz_unload(ErlNifEnv* env, void* priv_data) {
+  __UNUSED(env);
+
+  VZpriv *priv = (VZpriv*)priv_data;
+  vz_free_priv(priv);
+
+  return;
 }
 
 
@@ -2415,4 +2427,4 @@ static ErlNifFunc nif_funcs[] =
     {"bitmap_put_bin", 3, vz_bm_put_bin}
 };
 
-ERL_NIF_INIT(Elixir.Vizi.NIF, nif_funcs, &vz_load, NULL, NULL, NULL)
+ERL_NIF_INIT(Elixir.Vizi.NIF, nif_funcs, &vz_load, NULL, NULL, &vz_unload)

@@ -173,7 +173,7 @@ void* vz_view_thread(void *p) {
   puglInitResizable(view, vz_view->resizable);
   puglInitWindowParent(view, vz_view->parent);
   puglInitWindowSize(view, vz_view->width, vz_view->height);
-  puglInitWindowClass(view, vz_view->title);
+  puglInitWindowClass(view, vz_view->id);
   if (puglCreateWindow(view, vz_view->title)) {
     view = NULL;
     goto shutdown;

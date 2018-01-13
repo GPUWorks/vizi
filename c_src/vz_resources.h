@@ -48,6 +48,7 @@ struct VZview {
   ErlNifEnv *ev_env;
   ErlNifCond *execute_cv;
   ErlNifMutex *lock;
+  const char *id;
   bool busy;
   bool shutdown;
   bool resizable;
@@ -72,6 +73,19 @@ struct VZview {
 extern ErlNifResourceType *vz_view_res;
 VZview* vz_alloc_view(ErlNifEnv* env);
 void vz_view_dtor(ErlNifEnv *env, void *resource);
+
+
+/*
+  Priv data
+*/
+
+typedef struct VZpriv {
+  unsigned view_id_counter;
+} VZpriv;
+
+VZpriv* vz_alloc_priv();
+void vz_free_priv(VZpriv *priv);
+char* vz_priv_new_view_id(VZpriv *priv);
 
 
 /*

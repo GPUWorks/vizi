@@ -29,12 +29,15 @@ VZview* vz_alloc_view(ErlNifEnv* env) {
     return NULL;
   }
 
+  VZpriv *priv = (VZpriv*)enif_priv_data(env);
+
   enif_self(env, &vz_view->view_pid);
   vz_view->op_array = VZop_array_new(256);
   vz_view->ev_array = VZev_array_new(16);
   vz_view->res_array = VZres_array_new(256);
   vz_view->msg_env = enif_alloc_env();
   vz_view->ev_env = enif_alloc_env();
+  vz_view->id = vz_priv_new_view_id(priv);
   vz_view->busy = false;
   vz_view->shutdown = false;
   vz_view->resizable = false;
@@ -82,6 +85,25 @@ void vz_view_dtor(ErlNifEnv *env, void *resource) {
   VZop_array_free(vz_view->op_array);
   VZev_array_free(vz_view->ev_array);
 }
+
+VZpriv* vz_alloc_priv() {
+  VZpriv *priv = enif_alloc(sizeof(VZpriv));
+  priv->view_id_counter = 0;
+
+  return priv;
+}
+
+void vz_free_priv(VZpriv *priv) {
+  enif_free(priv);
+}
+
+char* vz_priv_new_view_id(VZpriv *priv) {
+  char *str = calloc(9, sizeof(char));
+  sprintf(str, "vizi-%03d", ++priv->view_id_counter);
+
+  return str;
+}
+
 
 ErlNifResourceType *vz_canvas_res;
 VZcanvas* vz_alloc_canvas(VZview *view) {
