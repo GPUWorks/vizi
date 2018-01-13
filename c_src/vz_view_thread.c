@@ -4,7 +4,7 @@
 #include "vz_events.h"
 
 #include "pugl/pugl.h"
-#include "pugl/glew.h"
+#include "GL/glew.h"
 #include "pugl/gl.h"
 #include "nanovg.h"
 #define NANOVG_GL2_IMPLEMENTATION
