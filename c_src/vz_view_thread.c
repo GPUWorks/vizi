@@ -173,14 +173,20 @@ void* vz_view_thread(void *p) {
   puglInitResizable(view, vz_view->resizable);
   puglInitWindowParent(view, vz_view->parent);
   puglInitWindowSize(view, vz_view->width, vz_view->height);
-  puglCreateWindow(view, vz_view->title);
+  puglInitWindowClass(view, vz_view->title);
+  if (puglCreateWindow(view, vz_view->title)) {
+    view = NULL;
+    goto shutdown;
+  }
 
   puglEnterContext(view);
-  if (!(glewInit() == GLEW_OK &&
-        (vz_view->ctx = nvgCreateGL2(NVG_ANTIALIAS|NVG_STENCIL_STROKES))))
-    goto shutdown;
-  puglLeaveContext(view, false);
 
+
+  if(glewInit() ||
+    !(vz_view->ctx = nvgCreateGL2(NVG_ANTIALIAS | NVG_STENCIL_STROKES))) {
+    goto shutdown;
+  }
+  puglLeaveContext(view, false);
   puglShowWindow(view);
   vz_view->view = view;
 
@@ -211,12 +217,11 @@ void* vz_view_thread(void *p) {
     vz_release_managed_resources(vz_view);
     vz_wait_for_frame(vz_view, view, &ts);
   }
-  shutdown:
-  enif_send(NULL, &vz_view->view_pid, NULL, ATOM_SHUTDOWN);
-  if(vz_view->ctx) {
+shutdown:
+  if(vz_view->ctx)
     nvgDeleteGL2(vz_view->ctx);
-  }
-  if(view)
+
+  if (view)
     puglDestroy(view);
 
 #ifdef VZ_LOG_TIMING
@@ -224,6 +229,7 @@ void* vz_view_thread(void *p) {
 #endif
 
   enif_mutex_unlock(vz_view->lock);
+  enif_send(NULL, &vz_view->view_pid, NULL, ATOM_SHUTDOWN);
   return NULL;
 }
 

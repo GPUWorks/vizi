@@ -62,25 +62,25 @@ VZview* vz_alloc_view(ErlNifEnv* env) {
 void vz_view_dtor(ErlNifEnv *env, void *resource) {
   __UNUSED(env);
   VZview *vz_view = (VZview*)resource;
-  if(vz_view->lock && !vz_view->shutdown) {
+  if (!vz_view->shutdown) {
     enif_mutex_lock(vz_view->lock);
     vz_view->busy = false;
     vz_view->shutdown = true;
     enif_cond_signal(vz_view->execute_cv);
     enif_mutex_unlock(vz_view->lock);
     enif_thread_join(vz_view->view_tid, NULL);
-    enif_mutex_destroy(vz_view->lock);
-    vz_view->lock = NULL;
-    enif_cond_destroy(vz_view->execute_cv);
-    vz_view->execute_cv = NULL;
-    enif_free_env(vz_view->msg_env);
-    enif_free_env(vz_view->ev_env);
-    for(unsigned i = 0; i < vz_view->op_array->end_pos; ++i) {
-      free(vz_view->op_array->array[i].args);
-    }
-    VZop_array_free(vz_view->op_array);
-    VZev_array_free(vz_view->ev_array);
   }
+
+  enif_mutex_destroy(vz_view->lock);
+  enif_cond_destroy(vz_view->execute_cv);
+  enif_free_env(vz_view->msg_env);
+  enif_free_env(vz_view->ev_env);
+
+  for(unsigned i = 0; i < vz_view->op_array->end_pos; ++i) {
+    free(vz_view->op_array->array[i].args);
+  }
+  VZop_array_free(vz_view->op_array);
+  VZev_array_free(vz_view->ev_array);
 }
 
 ErlNifResourceType *vz_canvas_res;
@@ -114,7 +114,8 @@ VZimage* vz_alloc_image(VZview *view, int handle) {
 
 void vz_image_dtor(ErlNifEnv *env, void *resource) {
   VZimage *image = (VZimage*)resource;
-  nvgDeleteImage(image->view->ctx, image->handle);
+  if(!image->view->shutdown)
+    nvgDeleteImage(image->view->ctx, image->handle);
 }
 
 
