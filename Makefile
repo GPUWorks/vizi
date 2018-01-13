@@ -1,5 +1,5 @@
 
-ERLANG_PATH = $(shell erl -eval 'io:format("~s", [lists:concat([code:root_dir(), "/erts-", erlang:system_info(version), "/include"])])' -s init stop -noshell)
+ERLANG_PATH = $(shell erl -args_file get_erl_path.args)
 BIN_DIR=priv
 C_SRC=$(wildcard c_src/*.c) $(wildcard c_src/pugl/pugl/*.c) $(wildcard c_src/nanovg/src/*.c) $(wildcard c_src/glew-2.1.0/src/*.c)
 OBJECTS=$(C_SRC:.c=.o)
