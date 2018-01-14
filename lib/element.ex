@@ -63,7 +63,6 @@ defmodule Vizi.Element do
   @doc """
   Invoked after `Vizi.View.redraw/1` has been called when `redraw_mode` is `:manual`, or automatically when `redraw_mode` is `:interval`.
 
-
   """
   @callback draw(params :: params, width :: number, height :: number, ctx :: Vizi.View.context) :: term
 
@@ -83,11 +82,6 @@ defmodule Vizi.Element do
       end
 
       @doc false
-      def update(el, _ctx) do
-        {:ok, el}
-      end
-
-      @doc false
       def draw(_params, _width, _height, _ctx) do
         :ok
       end
@@ -97,7 +91,7 @@ defmodule Vizi.Element do
         :cont
       end
 
-      defoverridable [init: 2, update: 2, draw: 4, handle_event: 2]
+      defoverridable [init: 2, draw: 4, handle_event: 2]
     end
   end
 
@@ -262,21 +256,19 @@ defmodule Vizi.Element do
   # Internals
 
   @doc false
-  def draw(%Element{mod: mod, children: children, width: width, height: height} = el, ctx) do
+  def draw(%Element{mod: mod} = el, ctx) do
     NIF.save(ctx)
     el = maybe_init(el, ctx)
-    el = case mod.update(el, ctx) do
-      {:ok, el} ->
-        el
-      bad_return ->
-        raise "bad return value from #{inspect el.mod}.update/2: #{inspect bad_return}"
-    end
-
     NIF.setup_element(ctx, el)
-    mod.draw(el.params, width, height, ctx)
-    children = draw(children, ctx)
+    params = case mod.draw(el.params, el.width, el.height, ctx) do
+      {:ok, params} ->
+        params
+      bad_return ->
+        raise "bad return value from #{inspect el.mod}.draw/4: #{inspect bad_return}"
+    end
+    children = draw(el.children, ctx)
     NIF.restore(ctx)
-    %Element{el|children: children}
+    %Element{el|params: params, children: children}
   end
   def draw(els, ctx) when is_list(els) do
     Enum.map(els, &draw(&1, ctx))

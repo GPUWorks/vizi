@@ -22,28 +22,24 @@ defmodule TestC1 do
 
   @tau 6.28318530718
 
-  def update(el, ctx) do
-    #Image.delete(ctx, el.params.img)
-    cnt = el.params.cnt
-    bm = Bitmap.create(ctx, 500, 300)
-    Enum.each(0..(Bitmap.size(bm) - 1), fn n ->
-      Bitmap.put(bm, n, rem(n + cnt, 256), 255 - rem(n + cnt, 256), 0, 255)
-    end)
-    Image.update_from_bitmap(ctx, el.params.img, bm)
-    el = Vizi.Element.update_attributes(el, rotate: fn x -> if x >= @tau, do: 0, else: x + 0.001 end)
-    {:ok, Vizi.Element.update_params!(el,
-    #img: fn _ -> img end,
-    cnt: fn x -> if x == 255, do: 0, else: x + 1 end)}
-  end
-
   def draw(params, width, height, ctx) do
-    paint = Paint.image_pattern(ctx, 0, 0, 500, 300, 0, params.img)
+    cnt = params.cnt
+    img = params.img
+    paint = Paint.image_pattern(ctx, 0, 0, 500, 300, 0, img)
 
     ctx
     |> begin_path()
     |> rect(0, 0, width, height)
     |> fill_paint(paint)
     |> fill()
+
+#    Vizi.View.send_event(:update, nil)
+
+    {:ok, update_in(params.cnt, fn x -> if x == 255, do: 0, else: x + 1 end)}
+  end
+
+  def handle_event(el, %Events.Custom{type: :update}) do
+    {:done, Vizi.Element.update_attributes(el, rotate: fn x -> if x >= @tau, do: 0, else: x + 0.001 end)}
   end
 
   def handle_event(_c, %Events.Button{type: :button_release} = ev) do
@@ -77,10 +73,6 @@ defmodule TestC2 do
     Vizi.Element.create(__MODULE__, %{angle: 0, img: nil}, opts)
   end
 
-  def update(el, _ctx) do
-    {:ok, update_in(el.params.angle, fn angle -> if angle == 359, do: 0, else: angle + 1 end)}
-  end
-
   def draw(params, width, height, ctx) do
     ctx
     |> begin_path()
@@ -94,6 +86,8 @@ defmodule TestC2 do
     |> rect(40, 40, 20, 20)
     |> fill_color(rgba(0, 0, 255))
     |> fill()
+
+    {:ok, update_in(params.angle, fn angle -> if angle == 359, do: 0, else: angle + 1 end)}
   end
 
   def handle_event(_c, %Events.Motion{} = ev) do
@@ -144,7 +138,7 @@ defmodule T do
   use Vizi.View
 
   def s do
-    {:ok, _pid} = Vizi.View.start_link(__MODULE__, nil, redraw_mode: :interval, frame_rate: 30)
+    {:ok, _pid} = Vizi.View.start_link(__MODULE__, nil, redraw_mode: :interval, frame_rate: 60)
   end
 
   def init(_args) do

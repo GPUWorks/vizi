@@ -169,10 +169,15 @@ defmodule Vizi.View do
   end
 
   @spec send_event(server :: GenServer.server, type :: atom, params :: term) :: :ok
-  def send_event(server, type, params \\ nil) do
+  def send_event(server, type, params) do
     {mega, sec, micro} = :os.timestamp
     time = (mega * 1_000_000 + sec) * 1000 + div(micro, 1000)
     GenServer.cast(server, %Events.Custom{type: type, params: params, time: time})
+  end
+
+  @spec send_event(type :: atom, params :: term) :: :ok
+  def send_event(type, params) do
+    send_event(self(), type, params)
   end
 
   @spec redraw(server :: GenServer.server) :: :ok
