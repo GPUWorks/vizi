@@ -141,7 +141,7 @@ defmodule T do
     {:ok, _pid} = Vizi.View.start_link(__MODULE__, nil, redraw_mode: :interval, frame_rate: 60)
   end
 
-  def init(_args) do
+  def init(_args, _width, _height) do
     root = TestC1.create(x: 100, y: 100, width: 500, height: 300, children:
       for n <- 1..100 do
         TestC2.create(x: n, y: n, width: 100, height: 100, alpha: 0.2, tags: [:a, :b])

@@ -35,7 +35,7 @@ defmodule Vizi.View do
     mod: module, state: term
   }
 
-  @callback init(args :: term) ::
+  @callback init(args :: term, width :: integer, height :: integer) ::
   {:ok, root, state} |
   {:ok, root, state, timeout | :hibernate} |
   :ignore |
@@ -199,7 +199,7 @@ defmodule Vizi.View do
       {:ok, ctx} ->
         redraw_mode = Keyword.get(opts, :redraw_mode, :manual)
         state = %Vizi.View{context: ctx, redraw_mode: redraw_mode, mod: mod}
-        callback_init(mod, args, state)
+        callback_init(mod, args, opts[:width], opts[:height], state)
       {:error, e} ->
         {:stop, e}
     end
@@ -259,8 +259,8 @@ defmodule Vizi.View do
   end
 
 
-  defp callback_init(mod, args, state) do
-    case mod.init(args) do
+  defp callback_init(mod, args, width, height, state) do
+    case mod.init(args, width, height) do
       {:ok, root, mod_state} ->
         {:ok, %{state|root: root, state: mod_state}}
       {:ok, root, mod_state, timeout} ->
