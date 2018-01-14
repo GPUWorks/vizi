@@ -29,7 +29,7 @@ void timespec_diff(struct timespec *start, struct timespec *stop, struct timespe
 }
 #endif
 
-#if defined(LINUX) || defined(MACOS)
+#if defined(VZ_PLATFORM_X11) || defined(VZ_PLATFORM_MACOS)
 static inline void set_next_time_point(struct timespec* ts, int frame_rate) {
   clock_gettime(CLOCK_MONOTONIC, ts);
   long interval = 1000000000 / frame_rate;
@@ -38,7 +38,7 @@ static inline void set_next_time_point(struct timespec* ts, int frame_rate) {
     ts->tv_sec += 1;
   ts->tv_nsec = rem;
 }
-#elif defined(WINDOWS)
+#elif defined(VZ_PLATFORM_WINDOWS)
 static inline void set_next_time_point(ULARGE_INTEGER* ts, int frame_rate) {
 	FILETIME ft;
 	GetSystemTimeAsFileTime(&ft);
@@ -49,13 +49,13 @@ static inline void set_next_time_point(ULARGE_INTEGER* ts, int frame_rate) {
 }
 #endif
 
-#if defined(LINUX) || defined(MACOS)
+#if defined(VZ_PLATFORM_X11) || defined(VZ_PLATFORM_MACOS)
 static inline void sleep_until(struct timespec *ts) {
   if(clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, ts, NULL) == EINTR) {
     sleep_until(ts);
   }
 }
-#elif defined(WINDOWS)
+#elif defined(VZ_PLATFORM_WINDOWS)
 // Slightly modified version lifted from: https://gist.github.com/Youka/4153f12cf2e17a77314c
 static inline void sleep_until(ULARGE_INTEGER *ts) {
 	/* Declarations */
@@ -126,9 +126,9 @@ static inline void vz_send_events(VZview *vz_view) {
   }
 }
 
-#if defined(LINUX) || defined(MACOS)
+#if defined(VZ_PLATFORM_X11) || defined(VZ_PLATFORM_MACOS)
 static inline void vz_wait_for_frame(VZview *vz_view, PuglView *view, struct timespec *ts) {
-#elif defined(WINDOWS)
+#elif defined(VZ_PLATFORM_WINDOWS)
 static inline void vz_wait_for_frame(VZview *vz_view, PuglView *view, ULARGE_INTEGER *ts) {
 #endif
   if(vz_view->redraw_mode == VZ_MANUAL) {
@@ -146,9 +146,9 @@ static inline void vz_wait_for_frame(VZview *vz_view, PuglView *view, ULARGE_INT
 }
 
 void* vz_view_thread(void *p) {
-#if defined(LINUX) || defined(MACOS)
+#if defined(VZ_PLATFORM_X11) || defined(VZ_PLATFORM_MACOS)
   struct timespec ts;
-#elif defined(WINDOWS)
+#elif defined(VZ_PLATFORM_WINDOWS)
 	ULARGE_INTEGER ts;
 #endif
 

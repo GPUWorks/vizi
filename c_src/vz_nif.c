@@ -9,9 +9,9 @@
 #include <erl_nif.h>
 #include <string.h>
 
-#ifdef LINUX
+#ifdef VZ_PLATFORM_X11
 #include <X11/Xlib.h>
-#elif WINDOWS
+#elif VZ_PLATFORM_WINDOWS
 #include <windows.h>
 #endif
 
@@ -324,7 +324,7 @@ static ERL_NIF_TERM vz_redraw(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[
   }
   enif_mutex_lock(vz_view->lock);
 
-#ifdef LINUX
+#ifdef VZ_PLATFORM_X11
   Display *display = XOpenDisplay(0);
   Window window = puglGetNativeWindow(vz_view->view);
   XExposeEvent event;
@@ -340,7 +340,7 @@ static ERL_NIF_TERM vz_redraw(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[
 
   XSendEvent(display, window, False, ExposureMask, (XEvent*)&event);
   XFlush(display);
-#elif defined(WINDOWS)
+#elif defined(VZ_PLATFORM_WINDOWS)
   HWND hwnd = (HWND)puglGetNativeWindow(vz_view->view);
   InvalidateRect(hwnd, NULL, FALSE);
 #endif
