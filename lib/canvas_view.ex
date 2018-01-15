@@ -4,7 +4,6 @@ defmodule Vizi.CanvasView do
   # API
 
   def start_link(opts \\ []) do
-    opts = Keyword.merge(opts, redraw_mode: :interval)
     Vizi.View.start_link(__MODULE__, nil, opts)
   end
 
