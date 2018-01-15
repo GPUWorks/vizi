@@ -12,10 +12,10 @@ defmodule Vizi.CanvasView do
     Vizi.View.cast(server, {:draw, params, fun})
   end
 
-  # Root element implementation for CanvasView
+  # Root node implementation for CanvasView
 
-  defmodule RootElement do
-    use Vizi.Element
+  defmodule RootNode do
+    use Vizi.Node
 
     def draw(%{fun: nil} = params, _width, _height, _ctx) do
       {:ok, params}
@@ -34,10 +34,10 @@ defmodule Vizi.CanvasView do
   # Vizi.View callbacks
 
   def init(_args, width, height) do
-    {:ok, Vizi.Element.create(RootElement, %{fun: nil, params: nil}, x: 0, y: 0, width: width, height: height), nil}
+    {:ok, Vizi.Node.create(RootNode, %{fun: nil, params: nil}, x: 0, y: 0, width: width, height: height), nil}
   end
 
   def handle_cast({:draw, params, fun}, root, state) do
-    {:noreply, Vizi.Element.put_params(root, %{fun: fun, params: params}), state}
+    {:noreply, Vizi.Node.put_params(root, %{fun: fun, params: params}), state}
   end
 end

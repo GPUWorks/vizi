@@ -1,5 +1,5 @@
-defmodule Vizi.Element do
-  alias Vizi.{Element, Events, NIF}
+defmodule Vizi.Node do
+  alias Vizi.{Node, Events, NIF}
 
   defstruct tags: [],
             x: 0.0, y: 0.0,
@@ -12,7 +12,7 @@ defmodule Vizi.Element do
             initialized: false,
             xform: nil
 
-  @type t :: %Vizi.Element{
+  @type t :: %Vizi.Node{
     tags: [tag],
     x: number, y: number,
     width: number, height: number,
@@ -57,8 +57,8 @@ defmodule Vizi.Element do
 
   This function can be used for setting up fonts, images and other resources that are needed for drawing.
   """
-  @callback init(el :: Vizi.Element.t, ctx :: Vizi.View.context) ::
-  {:ok, new_el} when new_el: Vizi.Element.t
+  @callback init(el :: Vizi.Node.t, ctx :: Vizi.View.context) ::
+  {:ok, new_el} when new_el: Vizi.Node.t
 
   @doc """
   Invoked after `Vizi.View.redraw/1` has been called when `redraw_mode` is `:manual`, or automatically when `redraw_mode` is `:interval`.
@@ -66,15 +66,15 @@ defmodule Vizi.Element do
   """
   @callback draw(params :: params, width :: number, height :: number, ctx :: Vizi.View.context) :: term
 
-  @callback handle_event(el :: Vizi.Element.t, event :: struct) ::
+  @callback handle_event(el :: Vizi.Node.t, event :: struct) ::
   :cont | :done |
   {:done, new_el} |
-  {:cont, new_el} when new_el: Vizi.Element.t
+  {:cont, new_el} when new_el: Vizi.Node.t
 
   @doc false
   defmacro __using__(_) do
     quote location: :keep do
-      @behaviour Vizi.Element
+      @behaviour Vizi.Node
 
       @doc false
       def init(el, _ctx) do
@@ -100,7 +100,7 @@ defmodule Vizi.Element do
 
   @spec create(mod :: module, params :: params, opts :: options) :: t
   def create(mod, params, opts \\ []) do
-    %Element{
+    %Node{
       tags: Keyword.get(opts, :tags, []),
       x: Keyword.get(opts, :x, 0.0),
       y: Keyword.get(opts, :y, 0.0),
@@ -119,24 +119,24 @@ defmodule Vizi.Element do
   end
 
   @spec put_front(parent :: t, el :: t) :: t
-  def put_front(%Element{children: children} = parent, el) do
+  def put_front(%Node{children: children} = parent, el) do
     children = List.delete(children, el)
-    %Element{parent|children: children ++ [el]}
+    %Node{parent|children: children ++ [el]}
   end
 
   @spec put_back(parent :: t, el :: t) :: t
-  def put_back(%Element{children: children} = parent, el) do
+  def put_back(%Node{children: children} = parent, el) do
     children = List.delete(children, el)
-    %Element{parent|children: [el | children]}
+    %Node{parent|children: [el | children]}
   end
 
   @spec put_before(parent :: t, member :: t, el :: t) :: t
-  def put_before(%Element{} = parent, member, el) do
+  def put_before(%Node{} = parent, member, el) do
     put_ba(parent, :before, member, el)
   end
 
   @spec put_after(parent :: t, member :: t, el :: t) :: t
-  def put_after(%Element{} = parent, member, el) do
+  def put_after(%Node{} = parent, member, el) do
     put_ba(parent, :after, member, el)
   end
 
@@ -155,20 +155,20 @@ defmodule Vizi.Element do
     end)
 
     if put do
-      %Element{parent|children: Enum.reverse(children)}
+      %Node{parent|children: Enum.reverse(children)}
     else
       parent
     end
   end
 
   @spec remove(parent :: t, el :: t) :: t
-  def remove(%Element{children: children} = parent, el) do
+  def remove(%Node{children: children} = parent, el) do
     children = Enum.filter(children, &(&1 != el))
-    %Element{parent|children: children}
+    %Node{parent|children: children}
   end
 
   @spec all(parent :: t, tags :: tag | [tag]) :: [t]
-  def all(%Element{children: children}, tags) do
+  def all(%Node{children: children}, tags) do
     tags = List.wrap(tags)
     Enum.filter(children, fn x ->
       Enum.all?(tags, &(&1 in x.tags))
@@ -176,7 +176,7 @@ defmodule Vizi.Element do
   end
 
   @spec any(parent :: t, tags :: tag | [tag]) :: [t]
-  def any(%Element{children: children}, tags) do
+  def any(%Node{children: children}, tags) do
     tags = List.wrap(tags)
     Enum.filter(children, fn x ->
       Enum.any?(tags, &(&1 in x.tags))
@@ -184,7 +184,7 @@ defmodule Vizi.Element do
   end
 
   @spec one(parent :: t, tags :: tag | [tag]) :: {:ok, t} | nil | :error
-  def one(%Element{} = parent, tags) do
+  def one(%Node{} = parent, tags) do
     case all(parent, tags) do
       [el] -> {:ok, el}
       []   -> nil
@@ -193,7 +193,7 @@ defmodule Vizi.Element do
   end
 
   @spec update_all(parent :: t, tags :: tag | [tag], function) :: t
-  def update_all(%Element{children: children} = parent, tags, fun) do
+  def update_all(%Node{children: children} = parent, tags, fun) do
     tags = List.wrap(tags)
     children = for x <- children do
       if Enum.all?(tags, &(&1 in x.tags)) do
@@ -202,11 +202,11 @@ defmodule Vizi.Element do
         x
       end
     end
-    %Element{parent|children: children}
+    %Node{parent|children: children}
   end
 
   @spec update_any(parent :: t, tags :: tag | [tag,], function) :: t
-  def update_any(%Element{children: children} = parent, tags, fun) do
+  def update_any(%Node{children: children} = parent, tags, fun) do
     tags = List.wrap(tags)
     children = for x <- children do
       if Enum.any?(tags, &(&1 in x.tags)) do
@@ -215,35 +215,35 @@ defmodule Vizi.Element do
         x
       end
     end
-    %Element{parent|children: children}
+    %Node{parent|children: children}
   end
 
   @spec put_param(el :: t, key :: atom, value :: term) :: t
-  def put_param(%Element{params: params} = el, key, value) do
-    %Element{el|params: Map.put(params, key, value)}
+  def put_param(%Node{params: params} = el, key, value) do
+    %Node{el|params: Map.put(params, key, value)}
   end
 
   @spec put_params(el :: t, params :: params) :: t
-  def put_params(%Element{} = el, params) do
-    %Element{el|params: Map.merge(el.params, params)}
+  def put_params(%Node{} = el, params) do
+    %Node{el|params: Map.merge(el.params, params)}
   end
 
   @spec update_param(el :: t, key :: atom, initial :: term, fun :: (term -> term)) :: t
-  def update_param(%Element{params: params} = el, key, initial, fun) do
-    %Element{el|params: Map.update(params, key, initial, fun)}
+  def update_param(%Node{params: params} = el, key, initial, fun) do
+    %Node{el|params: Map.update(params, key, initial, fun)}
   end
 
   @spec update_param!(el :: t, key :: atom, fun :: (term -> term)) :: t
-  def update_param!(%Element{params: params} = el, key, fun) do
-    %Element{el|params: Map.update!(params, key, fun)}
+  def update_param!(%Node{params: params} = el, key, fun) do
+    %Node{el|params: Map.update!(params, key, fun)}
   end
 
   @spec update_params!(el :: t, updates) :: t
-  def update_params!(%Element{params: params} = el, updates) do
+  def update_params!(%Node{params: params} = el, updates) do
     params = Enum.reduce(updates, params, fn {key, fun}, acc ->
       Map.update!(acc, key, fun)
     end)
-    %Element{el|params: params}
+    %Node{el|params: params}
   end
 
   @spec update_attributes(el :: t, updates) :: t
@@ -256,10 +256,10 @@ defmodule Vizi.Element do
   # Internals
 
   @doc false
-  def draw(%Element{mod: mod} = el, ctx) do
+  def draw(%Node{mod: mod} = el, ctx) do
     NIF.save(ctx)
     el = maybe_init(el, ctx)
-    NIF.setup_element(ctx, el)
+    NIF.setup_node(ctx, el)
     params = case mod.draw(el.params, el.width, el.height, ctx) do
       {:ok, params} ->
         params
@@ -268,16 +268,16 @@ defmodule Vizi.Element do
     end
     children = draw(el.children, ctx)
     NIF.restore(ctx)
-    %Element{el|params: params, children: children}
+    %Node{el|params: params, children: children}
   end
   def draw(els, ctx) when is_list(els) do
     Enum.map(els, &draw(&1, ctx))
   end
 
-  defp maybe_init(%Element{initialized: false} = el, ctx) do
+  defp maybe_init(%Node{initialized: false} = el, ctx) do
     case el.mod.init(el, ctx) do
       {:ok, el} ->
-        %Element{el|xform: NIF.transform_translate(0, 0), initialized: true}
+        %Node{el|xform: NIF.transform_translate(0, 0), initialized: true}
       bad_return ->
         raise "bad return value from #{inspect el.mod}.init/2: #{inspect bad_return}"
     end
@@ -285,11 +285,11 @@ defmodule Vizi.Element do
   defp maybe_init(el, _ctx), do: el
 
   @doc false
-  def handle_events(%Element{} = el, events, ctx) do
+  def handle_events(%Node{} = el, events, ctx) do
 
     {el, events} = Enum.reduce(events, {el, []}, &maybe_handle_event/2)
     {children, events} = handle_events(el.children, Enum.reverse(events), ctx)
-    {%Element{el | children: children}, events}
+    {%Node{el | children: children}, events}
   end
   def handle_events(els, events, ctx) when is_list(els) do
     {els, events} = Enum.reduce(els, {[], events}, fn el, {els, evs} ->
@@ -329,7 +329,7 @@ defmodule Vizi.Element do
     end
   end
 
-  defp touches?(%Element{width: width, height: height}, x, y) do
+  defp touches?(%Node{width: width, height: height}, x, y) do
     x >= 0 and x <= width and y >= 0 and y <= height
   end
 end

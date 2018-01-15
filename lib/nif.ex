@@ -12,7 +12,7 @@ defmodule Vizi.NIF do
   def ready(_ctx), do: :erlang.nif_error(:vz_nif_lib_not_loaded)
   def redraw(_ctx), do: :erlang.nif_error(:vz_nif_lib_not_loaded)
   def force_send_events(_ctx), do: :erlang.nif_error(:vz_nif_lib_not_loaded)
-  def setup_element(_ctx, _el), do: :erlang.nif_error(:vz_nif_lib_not_loaded)
+  def setup_node(_ctx, _el), do: :erlang.nif_error(:vz_nif_lib_not_loaded)
   def global_composite_operation(_ctx, _operation), do: :erlang.nif_error(:vz_nif_lib_not_loaded)
   def global_composite_blend_func(_ctx, _sfactor, _dfactor), do: :erlang.nif_error(:vz_nif_lib_not_loaded)
   def global_composite_blend_func_separate(_ctx, _src_rgb, _dst_rgb, _src_alpha, _dst_alpha), do: :erlang.nif_error(:vz_nif_lib_not_loaded)

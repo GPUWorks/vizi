@@ -368,7 +368,7 @@ static ERL_NIF_TERM vz_force_send_events(ErlNifEnv* env, int argc, const ERL_NIF
 
 
 VZ_ASYNC_DECL(
-  vz_setup_element,
+  vz_setup_node,
   {
     float *xform;
     double x;
@@ -2333,7 +2333,7 @@ static ErlNifFunc nif_funcs[] =
     {"ready", 1, vz_ready},
     {"redraw", 1, vz_redraw},
     {"force_send_events", 1, vz_force_send_events},
-    {"setup_element", 2, vz_setup_element},
+    {"setup_node", 2, vz_setup_node},
     {"global_composite_operation", 2, vz_global_composite_operation},
     {"global_composite_blend_func", 3, vz_global_composite_blend_func},
     {"global_composite_blend_func_separate", 5, vz_global_composite_blend_func_separate},

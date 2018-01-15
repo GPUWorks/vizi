@@ -2,11 +2,11 @@ alias Vizi.Events
 
 defmodule TestC1 do
   @moduledoc false
-  use Vizi.Element
+  use Vizi.Node
   use Vizi.Canvas
 
   def create(opts) do
-    Vizi.Element.create(__MODULE__, %{img: nil, bm: nil, cnt: 1}, opts)
+    Vizi.Node.create(__MODULE__, %{img: nil, bm: nil, cnt: 1}, opts)
   end
 
   def init(el, ctx) do
@@ -15,7 +15,7 @@ defmodule TestC1 do
       Bitmap.put(bm, n, rem(n, 256), 255 - rem(n, 256), 0, 255)
     end)
     img = Image.from_bitmap(ctx, bm)
-    {:ok, Vizi.Element.update_params!(el,
+    {:ok, Vizi.Node.update_params!(el,
     img: fn _ -> img end,
     bm: fn _ -> bm end)}
   end
@@ -39,7 +39,7 @@ defmodule TestC1 do
   end
 
   def handle_event(el, %Events.Custom{type: :update}) do
-    {:done, Vizi.Element.update_attributes(el, rotate: fn x -> if x >= @tau, do: 0, else: x + 0.001 end)}
+    {:done, Vizi.Node.update_attributes(el, rotate: fn x -> if x >= @tau, do: 0, else: x + 0.001 end)}
   end
 
   def handle_event(_c, %Events.Button{type: :button_release} = ev) do
@@ -66,11 +66,11 @@ end
 defmodule TestC2 do
 
   @moduledoc false
-  use Vizi.Element
+  use Vizi.Node
   use Vizi.Canvas
 
   def create(opts) do
-    Vizi.Element.create(__MODULE__, %{angle: 0, img: nil}, opts)
+    Vizi.Node.create(__MODULE__, %{angle: 0, img: nil}, opts)
   end
 
   def draw(params, width, height, ctx) do
@@ -96,7 +96,7 @@ defmodule TestC2 do
   end
   def handle_event(c, %Events.Custom{} = ev) do
     IO.puts "TestC3 received CUSTOM event: #{inspect ev}"
-    {:cont, Vizi.Element.update_attributes(c, rotate: fn x -> x + 1 end)}
+    {:cont, Vizi.Node.update_attributes(c, rotate: fn x -> x + 1 end)}
   end
 
   def handle_event(_c, _ev) do
@@ -106,11 +106,11 @@ end
 
 defmodule TestC3 do
   @moduledoc false
-  use Vizi.Element
+  use Vizi.Node
   use Vizi.Canvas
 
   def create(opts) do
-    Vizi.Element.create(__MODULE__, %{}, opts)
+    Vizi.Node.create(__MODULE__, %{}, opts)
   end
 
   def init(el, ctx) do

@@ -29,7 +29,7 @@ defmodule Vizi.View do
 
   @type t :: %Vizi.View{
     context: context,
-    root: Vizi.Element.t,
+    root: Vizi.Node.t,
     custom_events: [%Vizi.Events.Custom{}],
     redraw_mode: redraw_mode,
     mod: module, state: term
@@ -39,36 +39,36 @@ defmodule Vizi.View do
   {:ok, root, state} |
   {:ok, root, state, timeout | :hibernate} |
   :ignore |
-  {:stop, reason :: term} when root: Vizi.Element.t, state: term
+  {:stop, reason :: term} when root: Vizi.Node.t, state: term
 
-  @callback handle_event(event :: term, root :: Vizi.Element.t, state :: term) ::
+  @callback handle_event(event :: term, root :: Vizi.Node.t, state :: term) ::
   :cont | :done |
   {:cont, new_root, new_state} |
-  {:done, new_root, new_state} when new_root: Vizi.Element.t, new_state: term
+  {:done, new_root, new_state} when new_root: Vizi.Node.t, new_state: term
 
-  @callback handle_call(request :: term, from :: term, root :: Vizi.Element.t, state :: term) ::
+  @callback handle_call(request :: term, from :: term, root :: Vizi.Node.t, state :: term) ::
   {:reply, reply, new_root, new_state} |
   {:reply, reply, new_root, new_state, timeout | :hibernate} |
   {:noreply, new_root, new_state} |
   {:noreply, new_root, new_state, timeout | :hibernate} |
   {:stop, reason, reply, new_root, new_state} |
-  {:stop, reason, new_root, new_state} when reply: term, new_root: Vizi.Element.t, new_state: term, reason: term
+  {:stop, reason, new_root, new_state} when reply: term, new_root: Vizi.Node.t, new_state: term, reason: term
 
-  @callback handle_cast(request :: term, root :: Vizi.Element.t, state :: term) ::
+  @callback handle_cast(request :: term, root :: Vizi.Node.t, state :: term) ::
   {:noreply, new_root, new_state} |
   {:noreply, new_root, new_state, timeout | :hibernate} |
-  {:stop, reason :: term, new_root, new_state} when new_root: Vizi.Element.t, new_state: term
+  {:stop, reason :: term, new_root, new_state} when new_root: Vizi.Node.t, new_state: term
 
-  @callback handle_info(msg :: :timeout | term, root :: Vizi.Element.t, state :: term) ::
+  @callback handle_info(msg :: :timeout | term, root :: Vizi.Node.t, state :: term) ::
   {:noreply, new_root, new_state} |
   {:noreply, new_root, new_state, timeout | :hibernate} |
-  {:stop, reason :: term, new_state} when new_root: Vizi.Element.t, new_state: term
+  {:stop, reason :: term, new_state} when new_root: Vizi.Node.t, new_state: term
 
-  @callback terminate(reason, root :: Vizi.Element.t, state :: term) ::
+  @callback terminate(reason, root :: Vizi.Node.t, state :: term) ::
   term when reason: :normal | :shutdown | {:shutdown, term} | term
 
-  @callback code_change(old_vsn, root :: Vizi.Element.t, state :: term, extra :: term) ::
-  {:ok, new_root :: Vizi.Element.t, new_state :: term} |
+  @callback code_change(old_vsn, root :: Vizi.Node.t, state :: term, extra :: term) ::
+  {:ok, new_root :: Vizi.Node.t, new_state :: term} |
   {:error, reason :: term} when old_vsn: term | {:down, term}
 
   @defaults [
@@ -230,7 +230,7 @@ defmodule Vizi.View do
 
   @doc false
   def handle_info({:vz_draw, _ts}, state) do
-    root = Vizi.Element.draw(state.root, state.context)
+    root = Vizi.Node.draw(state.root, state.context)
     Vizi.NIF.ready(state.context)
     {:noreply, %{state|root: root}}
   end
@@ -337,7 +337,7 @@ defmodule Vizi.View do
 
   defp handle_events(events, %{root: root, context: ctx} = state) do
     {events, root, mod_state, state} = Enum.reduce(events, {[], root, state.state, state}, &do_handle_event/2)
-    {root, _} = Vizi.Element.handle_events(root, Enum.reverse(events), ctx)
+    {root, _} = Vizi.Node.handle_events(root, Enum.reverse(events), ctx)
     %{state|root: root, custom_events: [], state: mod_state}
   end
 
