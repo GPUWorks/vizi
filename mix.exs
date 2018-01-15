@@ -31,7 +31,7 @@ defmodule Vizi.Mixfile do
       name: "Vizi",
       source_url: "https://github.com/zambal/vizi",
       homepage_url: "https://github.com/zambal/vizi",
-      docs: []
+      docs: [extras: ["README.md"]]
     ]
   end
 
