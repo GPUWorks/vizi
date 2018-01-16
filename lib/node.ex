@@ -10,6 +10,7 @@ defmodule Vizi.Node do
             rotate: 0.0, alpha: 1.0,
             mod: nil, params: %{},
             initialized: false,
+            tweens: [],
             xform: nil
 
   @type t :: %Vizi.Node{
@@ -259,6 +260,10 @@ defmodule Vizi.Node do
   def draw(%Node{mod: mod} = el, ctx) do
     NIF.save(ctx)
     el = maybe_init(el, ctx)
+    el = case el.tweens do
+          []      -> el
+          _tweens -> Vizi.Tween.step(el)
+         end
     NIF.setup_node(ctx, el)
     params = case mod.draw(el.params, el.width, el.height, ctx) do
       {:ok, params} ->

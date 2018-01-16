@@ -199,6 +199,7 @@ defmodule Vizi.View do
       {:ok, ctx} ->
         redraw_mode = Keyword.get(opts, :redraw_mode, :manual)
         state = %Vizi.View{context: ctx, redraw_mode: redraw_mode, mod: mod}
+        Process.put(:vz_frame_rate, opts[:frame_rate])
         callback_init(mod, args, opts[:width], opts[:height], state)
       {:error, e} ->
         {:stop, e}

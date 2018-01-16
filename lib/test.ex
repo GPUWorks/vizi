@@ -42,10 +42,19 @@ defmodule TestC1 do
     {:done, Vizi.Node.update_attributes(el, rotate: fn x -> if x >= @tau, do: 0, else: x + 0.001 end)}
   end
 
-  def handle_event(_c, %Events.Button{type: :button_release} = ev) do
-    #IO.puts "TestC1 received BUTTON event: #{inspect ev}"
-    Vizi.View.redraw()
-    :done
+  def handle_event(c, %Events.Button{type: :button_release} = ev) do
+    use Vizi.Tween
+
+    t = if c.x < 200 do
+      Tween.new(%{x: 300}, in: msec(1000), use: :sin_inout)
+      |> Tween.pause(60)
+      |> Tween.new(%{y: 300}, in: sec(4), use: :quart_inout)
+    else
+      Tween.new(%{x: 100}, in: min(0.5), use: :sin_inout)
+      |> Tween.pause(60)
+      |> Tween.new(%{y: 100}, in: sec(2), use: :exp_in, mode: :pingpong)
+    end
+    {:done, Vizi.Tween.into(t, c)}
   end
 
   def handle_event(c, %Events.Motion{} = ev) do
@@ -142,11 +151,33 @@ defmodule T do
   end
 
   def init(_args, _width, _height) do
-    root = TestC1.create(x: 100, y: 100, width: 500, height: 300, children:
-      for n <- 1..100 do
-        TestC2.create(x: n, y: n, width: 100, height: 100, alpha: 0.2, tags: [:a, :b])
-      end
+    root = TestC1.create(x: 100, y: 100, width: 500, height: 300, children: []
     )
     {:ok, root, nil}
+  end
+
+
+  def bm_erl do
+    n = %Vizi.Node{}
+    t = Vizi.Tween.new(%{x: 100}, in: 10_000_000, use: :quad_inout)
+    n = Vizi.Tween.into(t, n)
+    ts1 = :os.timestamp()
+    Enum.reduce(1..10_000_000, n, fn _x, acc ->
+      Vizi.Tween.step(acc)
+    end)
+    ts2 = :os.timestamp()
+    :timer.now_diff(ts2, ts1) / 1000
+  end
+
+  def bm_native do
+    n = %Vizi.Node{}
+    t = Vizi.Tween.new(%{x: 100}, in: 10_000_000, use: &Vizi.NIF.easing_quad_inout/4)
+    n = Vizi.Tween.into(t, n)
+    ts1 = :os.timestamp()
+    Enum.reduce(1..10_000_000, n, fn _x, acc ->
+      Vizi.Tween.step(acc)
+    end)
+    ts2 = :os.timestamp()
+    :timer.now_diff(ts2, ts1) / 1000
   end
 end
