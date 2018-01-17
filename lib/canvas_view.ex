@@ -1,6 +1,7 @@
 defmodule Vizi.CanvasView do
   use Vizi.View
 
+
   # API
 
   def start_link(opts \\ []) do
@@ -19,6 +20,7 @@ defmodule Vizi.CanvasView do
     Vizi.View.cast(server, :remove_animations)
   end
 
+
   # Root node implementation for CanvasView
 
   defmodule RootNode do
@@ -31,6 +33,7 @@ defmodule Vizi.CanvasView do
       fun.(params, width, height, ctx)
     end
   end
+
 
   # Vizi.View callbacks
 
@@ -57,6 +60,9 @@ defmodule Vizi.CanvasView do
   def handle_cast(:remove_animations, root, state) do
     {:noreply, Vizi.Animation.remove_all(root), state}
   end
+
+
+  # Internal functions
 
   defp map_params(nil), do: nil
   defp map_params(anim) do
