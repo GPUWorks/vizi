@@ -11,6 +11,7 @@ defmodule Vizi.Node do
             mod: nil, params: %{},
             initialized: false,
             animations: [],
+            tasks: [],
             xform: nil
 
   @type t :: %Vizi.Node{
@@ -23,6 +24,8 @@ defmodule Vizi.Node do
     rotate: number, alpha: number,
     mod: module | nil, params: params,
     initialized: boolean,
+    animations: [Vizi.Animation.t],
+    tasks: [task_fun],
     xform: Vizi.Canvas.Transform.t | nil
   }
 
@@ -31,6 +34,8 @@ defmodule Vizi.Node do
   @type params :: %{optional(atom) => term}
 
   @type updates :: [{atom, (term -> term)}]
+
+  @type task_fun :: (params, number, number, Vizi.View.context -> {:ok, params})
 
   @typedoc "Option values used by `create/3`"
   @type option :: {:tags, [tag]} |
@@ -254,16 +259,28 @@ defmodule Vizi.Node do
     end)
   end
 
+  @spec add_task(node :: t, task_fun) :: t
+  def add_task(node, fun) do
+    %Node{node|tasks: node.tasks ++ [fun]}
+  end
+
   # Internals
 
   @doc false
   def update(%Node{mod: mod} = node, ctx) do
     NIF.save(ctx)
-    node = node |> maybe_init(ctx) |> maybe_animate()
+
+    node = node
+    |> maybe_init(ctx)
+    |> maybe_execute_tasks(ctx)
+    |> maybe_animate()
+
     NIF.setup_node(ctx, node)
     mod.draw(node.params, node.width, node.height, ctx)
     children = update(node.children, ctx)
+
     NIF.restore(ctx)
+
     %Node{node|children: children}
   end
   def update(els, ctx) when is_list(els) do
@@ -279,6 +296,21 @@ defmodule Vizi.Node do
     end
   end
   defp maybe_init(node, _ctx), do: node
+
+  defp maybe_execute_tasks(%Node{tasks: []} = node, _ctx) do
+    node
+  end
+  defp maybe_execute_tasks(%Node{width: width, height: height, tasks: tasks} = node, ctx) do
+    params = Enum.reduce(tasks, node.params, fn task, acc ->
+      case task.(acc, width, height, ctx) do
+        {:ok, params} ->
+          params
+        bad_return ->
+          raise "bad return value from task #{inspect task}: #{inspect bad_return}"
+      end
+    end)
+    %Node{node|params: params, tasks: []}
+  end
 
   defp maybe_animate(%Node{animations: []} = node) do
     node

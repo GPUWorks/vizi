@@ -9,13 +9,13 @@ defmodule TestC1 do
     Vizi.Node.create(__MODULE__, %{img: nil, bm: nil, cnt: 1}, opts)
   end
 
-  def init(el, ctx) do
+  def init(node, ctx) do
     bm = Bitmap.create(ctx, 500, 300)
     Enum.each(0..(Bitmap.size(bm) - 1), fn n ->
       Bitmap.put(bm, n, rem(n, 256), 255 - rem(n, 256), 0, 255)
     end)
     img = Image.from_bitmap(ctx, bm)
-    {:ok, Vizi.Node.update_params!(el,
+    {:ok, Vizi.Node.update_params!(node,
     img: fn _ -> img end,
     bm: fn _ -> bm end)}
   end
@@ -38,12 +38,23 @@ defmodule TestC1 do
     {:ok, update_in(params.cnt, fn x -> if x == 255, do: 0, else: x + 1 end)}
   end
 
-  def handle_event(el, %Events.Custom{type: :update}) do
-    {:done, Vizi.Node.update_attributes(el, rotate: fn x -> if x >= @tau, do: 0, else: x + 0.001 end)}
+  def handle_event(node, %Events.Custom{type: :update}) do
+    {:done, Vizi.Node.update_attributes(node, rotate: fn x -> if x >= @tau, do: 0, else: x + 0.001 end)}
   end
 
   def handle_event(node, %Events.Button{type: :button_release} = ev) do
     import Vizi.Animation
+
+    node = Vizi.Node.add_task(node, fn params, _width, _height, ctx ->
+      bm = Bitmap.create(ctx, 500, 300)
+      Enum.each(0..(Bitmap.size(bm) - 1), fn n ->
+        Bitmap.put(bm, n, 255 - rem(n, 256), rem(n, 256), 128, 255)
+      end)
+      img = Image.from_bitmap(ctx, bm)
+
+      {:ok, %{params|bm: bm, img: img}}
+    end)
+
 
     t = if node.x < 200 do
       tween(%{x: 300}, in: msec(1000), use: :sin_inout)
@@ -61,13 +72,13 @@ defmodule TestC1 do
   def handle_event(node, %Events.Motion{} = ev) do
     #IO.puts "TestC1 received MOTION event: #{inspect ev}"
     ch = Stream.with_index(node.children)
-    |> Enum.map(fn {el, ndx} ->
-      %{el|x: ndx + ev.x, y: ndx + ev.y}
+    |> Enum.map(fn {node, ndx} ->
+      %{node|x: ndx + ev.x, y: ndx + ev.y}
     end)
     {:done, %{node|children: ch}}
   end
 
-  def handle_event(_c, ev) do
+  def handle_event(_node, ev) do
    # IO.inspect ev
     :cont
   end
@@ -100,16 +111,15 @@ defmodule TestC2 do
     |> fill()
   end
 
-  def handle_event(_c, %Events.Motion{} = ev) do
-    IO.inspect ev
-    :cont
+  def handle_event(_node, %Events.Button{type: :button_release}) do
+    :done
   end
   def handle_event(node, %Events.Custom{} = ev) do
     IO.puts "TestC3 received CUSTOM event: #{inspect ev}"
     {:cont, Vizi.Node.update_attributes(node, rotate: fn x -> x + 1 end)}
   end
 
-  def handle_event(_c, _ev) do
+  def handle_event(_node, _ev) do
     :cont
   end
 end
@@ -123,9 +133,9 @@ defmodule TestC3 do
     Vizi.Node.create(__MODULE__, %{}, opts)
   end
 
-  def init(el, ctx) do
+  def init(node, ctx) do
     font = Text.create_font(ctx, "/home/zambal/dev/vizi/c_src/nanovg/example/Roboto-Light.ttf")
-    {:ok, %{el|params: %{font: font, color: rgba(255, 0, 0, 255)}}}
+    {:ok, %{node|params: %{font: font, color: rgba(255, 0, 0, 255)}}}
   end
 
   def draw(params, _width, _height, ctx) do
@@ -136,7 +146,7 @@ defmodule TestC3 do
     |> text(0, 40, "Hello World!")
   end
 
-  def handle_event(_c, ev) do
+  def handle_event(_node, ev) do
     IO.puts "TestC3 received event: #{inspect ev}"
     :cont
   end
@@ -161,7 +171,7 @@ defmodule T do
 
   def bm_erl do
     n = %Vizi.Node{}
-    t = Vizi.Animation.new(%{x: 100}, in: 10_000_000, use: :quad_inout)
+    t = Vizi.Animation.tween(%{x: 100}, in: 10_000_000, use: :quad_inout)
     n = Vizi.Animation.into(t, n)
     ts1 = :os.timestamp()
     Enum.reduce(1..10_000_000, n, fn _x, acc ->
@@ -173,7 +183,7 @@ defmodule T do
 
   def bm_native do
     n = %Vizi.Node{}
-    t = Vizi.Animation.new(%{x: 100}, in: 10_000_000, use: &Vizi.NIF.easing_quad_inout/4)
+    t = Vizi.Animation.tween(%{x: 100}, in: 10_000_000, use: &Vizi.NIF.easing_quad_inout/4)
     n = Vizi.Animation.into(t, n)
     ts1 = :os.timestamp()
     Enum.reduce(1..10_000_000, n, fn _x, acc ->
