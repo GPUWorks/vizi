@@ -1,7 +1,7 @@
-defmodule Vizi.Tween do
+defmodule Vizi.Animation do
   defstruct values: %{}, length: 0, step: 0, easing: nil, next: nil, mode: :once
 
-  @type t :: %Vizi.Tween{
+  @type t :: %Vizi.Animation{
     values: values | proc_values,
     length: integer,
     step: integer,
@@ -45,43 +45,43 @@ defmodule Vizi.Tween do
 
   # Public API
 
-  @spec new(t, values, options) :: t
-  def new(prev \\ nil, values, opts) do
+  @spec tween(t, values, options) :: t
+  def tween(prev \\ nil, values, opts) do
     length = Keyword.fetch!(opts, :in)
     mode = Keyword.get(opts, :mode, :once)
     easing = get_easing_fun(Keyword.get(opts, :use, :lin))
-    tween = %Vizi.Tween{values: values, length: length, easing: easing, mode: mode}
+    anim = %Vizi.Animation{values: values, length: length, easing: easing, mode: mode}
     if is_nil(prev) do
-      tween
+      anim
     else
-      set_next(prev, tween)
+      set_next(prev, anim)
     end
   end
 
   @spec pause(t, length) :: t
   def pause(prev \\ nil, length) do
-    tween = %Vizi.Tween{length: length}
+    anim = %Vizi.Animation{length: length}
     if is_nil(prev) do
-      tween
+      anim
     else
       set_next(prev, tween)
     end
   end
 
   @spec into(t, Vizi.Node.t) :: Vizi.Node.t
-  def into(tween, node) do
-    tween = set_values(tween, node)
-    %Vizi.Node{node|tweens: [tween | node.tweens]}
+  def into(anim, node) do
+    anim = set_values(anim, node)
+    %Vizi.Node{node|animations: [anim | node.animations]}
   end
 
   @spec step(Vizi.Node.t) :: Vizi.Node.t
-  def step(%Vizi.Node{tweens: tweens} = node) do
-    Enum.reduce(tweens, %Vizi.Node{node|tweens: []}, fn tween, acc ->
-      case do_step(tween) do
+  def step(%Vizi.Node{animations: animations} = node) do
+    Enum.reduce(animations, %Vizi.Node{node|animations: []}, fn anim, acc ->
+      case do_step(anim) do
         :done ->
           acc
-        {values, tween} ->
-          handle_result(values, tween, acc)
+        {values, anim} ->
+          handle_result(values, anim, acc)
       end
     end)
   end
@@ -118,16 +118,9 @@ defmodule Vizi.Tween do
     end
   end
 
-  defmacro __using__(_) do
-    quote do
-      alias Vizi.Tween
-      import Vizi.Tween, only: [sec: 1, msec: 1, min: 1]
-    end
-  end
-
   # Internal functions
 
-  defp set_values(%Vizi.Tween{values: values, next: next} = tween, node) do
+  defp set_values(%Vizi.Animation{values: values, next: next} = anim, node) do
     values = values
     |> Enum.map(fn
       {key, {:add, x}} ->
@@ -141,36 +134,36 @@ defmodule Vizi.Tween do
         {key, {from, to - from}}
     end)
 
-    %Vizi.Tween{tween|values: values, next: set_values(next, node)}
+    %Vizi.Animation{anim|values: values, next: set_values(next, node)}
   end
   defp set_values(nil, _node), do: nil
 
-  defp handle_result(values, tween, node) do
+  defp handle_result(values, anim, node) do
     node = Enum.reduce(values, node, fn
       {{:param, pkey}, value}, acc ->
         %Vizi.Node{acc|params: Map.put(acc.params, pkey, value)}
       {attr, value}, acc ->
         Map.put(acc, attr, value)
     end)
-    %Vizi.Node{node|tweens: [tween | node.tweens]}
+    %Vizi.Node{node|animations: [anim | node.animations]}
   end
 
-  defp do_step(%Vizi.Tween{values: values, length: length, step: step, easing: fun, next: next, mode: mode} = tween) do
+  defp do_step(%Vizi.Animation{values: values, length: length, step: step, easing: fun, next: next, mode: mode} = anim) do
     step = step + 1
     if step > length do
       case mode do
         :once ->
           do_step(next)
         :loop ->
-          do_step(%Vizi.Tween{tween|step: 0})
+          do_step(%Vizi.Animation{anim|step: 0})
         :pingpong ->
-          do_step(%Vizi.Tween{tween|values: pingpong_values(values), step: 0})
+          do_step(%Vizi.Animation{anim|values: pingpong_values(values), step: 0})
       end
     else
       values = for {key, {from, delta}} <- values, into: %{} do
         {key, fun.(from, delta, length, step)}
       end
-      {values, %Vizi.Tween{tween| step: step}}
+      {values, %Vizi.Animation{anim| step: step}}
     end
   end
   defp do_step(nil), do: :done
@@ -199,13 +192,13 @@ defmodule Vizi.Tween do
       message: "invalid attribute '#{inspect attr}' for node\r\n#{inspect node}"
   end
 
-  #tween(%{{:param, :test} => 5.0}, in: sec(5), use: :exp_in)
+  #anim(%{{:param, :test} => 5.0}, in: sec(5), use: :exp_in)
 
-  defp set_next(%Vizi.Tween{next: nil} = prev, tween) do
-    %Vizi.Tween{prev|next: tween}
+  defp set_next(%Vizi.Animation{next: nil} = prev, anim) do
+    %Vizi.Animation{prev|next: anim}
   end
-  defp set_next(%Vizi.Tween{next: next} = prev, tween) do
-    %Vizi.Tween{prev|next: set_next(next, tween)}
+  defp set_next(%Vizi.Animation{next: next} = prev, anim) do
+    %Vizi.Animation{prev|next: set_next(next, anim)}
   end
 
   defp get_easing_fun(:lin),         do: &easing_lin/4
