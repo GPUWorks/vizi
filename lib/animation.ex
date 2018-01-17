@@ -84,7 +84,7 @@ defmodule Vizi.Animation do
         :done ->
           acc
         {values, anim} ->
-          handle_result(values, anim, acc)
+          handle_result(acc, values, anim)
       end
     end)
   end
@@ -136,12 +136,21 @@ defmodule Vizi.Animation do
         {key, from} = map_value(key, node)
         {key, {from, to - from}}
     end)
-
+    node = update_for_next(node, values)
     %Vizi.Animation{anim|values: values, next: set_values(next, node)}
   end
   defp set_values(nil, _node), do: nil
 
-  defp handle_result(values, anim, node) do
+  defp update_for_next(node, values) do
+    Enum.reduce(values, node, fn
+      {{:param, pkey}, {from, delta}}, acc ->
+        %Vizi.Node{acc|params: put_in(acc.params, pkey, from + delta)}
+      {attr, {from, delta}}, acc ->
+        Map.put(acc, attr, from + delta)
+    end)
+  end
+
+  defp handle_result(node, values, anim) do
     node = Enum.reduce(values, node, fn
       {{:param, pkey}, value}, acc ->
         %Vizi.Node{acc|params: put_in(acc.params, pkey, value)}
