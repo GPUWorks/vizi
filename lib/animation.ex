@@ -51,21 +51,13 @@ defmodule Vizi.Animation do
     mode = Keyword.get(opts, :mode, :once)
     easing = get_easing_fun(Keyword.get(opts, :use, :lin))
     anim = %Vizi.Animation{values: values, length: length, easing: easing, mode: mode}
-    if is_nil(prev) do
-      anim
-    else
-      set_next(prev, anim)
-    end
+    maybe_set_next(prev, anim)
   end
 
   @spec pause(t, length) :: t
   def pause(prev \\ nil, length) do
     anim = %Vizi.Animation{length: length}
-    if is_nil(prev) do
-      anim
-    else
-      set_next(prev, tween)
-    end
+    maybe_set_next(prev, anim)
   end
 
   @spec into(t, Vizi.Node.t) :: Vizi.Node.t
@@ -194,11 +186,14 @@ defmodule Vizi.Animation do
 
   #anim(%{{:param, :test} => 5.0}, in: sec(5), use: :exp_in)
 
-  defp set_next(%Vizi.Animation{next: nil} = prev, anim) do
+  defp maybe_set_next(%Vizi.Animation{next: nil} = prev, anim) do
     %Vizi.Animation{prev|next: anim}
   end
-  defp set_next(%Vizi.Animation{next: next} = prev, anim) do
-    %Vizi.Animation{prev|next: set_next(next, anim)}
+  defp maybe_set_next(%Vizi.Animation{next: next} = prev, anim) do
+    %Vizi.Animation{prev|next: maybe_set_next(next, anim)}
+  end
+  defp maybe_set_next(nil, anim) do
+    anim
   end
 
   defp get_easing_fun(:lin),         do: &easing_lin/4
