@@ -327,7 +327,7 @@ defmodule Vizi.Animation do
   end
 
   defp easing_sin_out(from, delta, length, step) do
-    delta * -:math.sin(step / length * @half_pi) + from
+    delta * :math.sin(step / length * @half_pi) + from
   end
 
   defp easing_sin_inout(from, delta, length, step) do
