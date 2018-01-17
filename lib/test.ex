@@ -80,7 +80,9 @@ defmodule TestC2 do
   use Vizi.Canvas
 
   def create(opts) do
-    Vizi.Node.create(__MODULE__, %{angle: 0, img: nil}, opts)
+    import Vizi.Animation
+    tween(%{{:param, :angle} => 359}, in: sec(6), mode: :loop)
+    |> into(Vizi.Node.create(__MODULE__, %{angle: 0, img: nil}, opts))
   end
 
   def draw(params, width, height, ctx) do
@@ -96,8 +98,6 @@ defmodule TestC2 do
     |> rect(40, 40, 20, 20)
     |> fill_color(rgba(0, 0, 255))
     |> fill()
-
-    {:ok, update_in(params.angle, fn angle -> if angle == 359, do: 0, else: angle + 1 end)}
   end
 
   def handle_event(_c, %Events.Motion{} = ev) do
@@ -152,8 +152,9 @@ defmodule T do
   end
 
   def init(_args, _width, _height) do
-    root = TestC1.create(x: 100, y: 100, width: 500, height: 300, children: []
-    )
+    root = TestC1.create(x: 100, y: 100, width: 500, height: 300, children: [
+      TestC2.create(x: 100, y: 100, width: 100, height: 100)
+    ])
     {:ok, root, nil}
   end
 

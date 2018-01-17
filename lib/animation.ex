@@ -17,7 +17,7 @@ defmodule Vizi.Animation do
 
   @type mode :: :once | :loop | :pingpong
 
-  @type key :: :x | :y | :width | :height | :alpha | :rotate | :skew_x | :skew_y | :scale_x | :scale_y | {:param, atom}
+  @type key :: :x | :y | :width | :height | :alpha | :rotate | :skew_x | :skew_y | :scale_x | :scale_y | {:param, atom | [atom]}
   @type value :: number | {:add, number} | {:sub, number}
   @type values :: %{optional(key) => value}
   @type proc_values :: [{key, {from, delta}}]
@@ -127,13 +127,13 @@ defmodule Vizi.Animation do
     values = values
     |> Enum.map(fn
       {key, {:add, x}} ->
-        from = get_value(key, node)
+        {key, from} = map_value(key, node)
         {key, {from, x}}
       {key, {:sub, x}} ->
-        from = get_value(key, node)
+        {key, from} = map_value(key, node)
         {key, {from, -x}}
       {key, to} ->
-        from = get_value(key, node)
+        {key, from} = map_value(key, node)
         {key, {from, to - from}}
     end)
 
@@ -144,7 +144,7 @@ defmodule Vizi.Animation do
   defp handle_result(values, anim, node) do
     node = Enum.reduce(values, node, fn
       {{:param, pkey}, value}, acc ->
-        %Vizi.Node{acc|params: Map.put(acc.params, pkey, value)}
+        %Vizi.Node{acc|params: put_in(acc.params, pkey, value)}
       {attr, value}, acc ->
         Map.put(acc, attr, value)
     end)
@@ -177,20 +177,21 @@ defmodule Vizi.Animation do
     end
   end
 
-  defp get_value({:param, pkey}, node) do
-    case Map.fetch(node.params, pkey) do
-      {:ok, value} ->
-        value
-      :error ->
+  defp map_value({:param, key}, node) do
+    pkey = List.wrap(key)
+    case get_in(node.params, pkey) do
+      nil ->
         raise ArgumentError,
-          message: "param key '#{inspect pkey}' does not exist for node\r\n#{inspect node}"
+        message: "param key '#{inspect key}' does not exist or has a value of `nil` for node\r\n#{inspect node}"
+      value ->
+        {{:param, pkey}, value}
     end
   end
-  defp get_value(attr, node)
+  defp map_value(attr, node)
   when attr in @allowed_attributes do
-    Map.get(node, attr)
+    {attr, Map.get(node, attr)}
   end
-  defp get_value(attr, node) do
+  defp map_value(attr, node) do
     raise ArgumentError,
       message: "invalid attribute '#{inspect attr}' for node\r\n#{inspect node}"
   end
