@@ -12,8 +12,8 @@ defmodule Vizi.CanvasView do
     Vizi.View.cast(server, {:draw, params, fun})
   end
 
-  def animate(server, %Vizi.Animation{} = anim) do
-    Vizi.View.cast(server, {:animate, anim})
+  def animate(server, fun) when is_function(fun, 0) do
+    Vizi.View.cast(server, {:animate, fun})
   end
 
   def remove_animations(server) do
@@ -49,7 +49,13 @@ defmodule Vizi.CanvasView do
     {:noreply, root, state}
   end
 
-  def handle_cast({:animate, anim}, root, state) do
+  def handle_cast({:animate, fun}, root, state) do
+    anim = case fun.() do
+      %Vizi.Animation{} = anim ->
+        anim
+      _bad_return ->
+        raise ArgumentError, message: "bad return value from #{inspect fun}, expected an animation"
+    end
     root = anim
     |> map_params()
     |> Vizi.Animation.into(root)
