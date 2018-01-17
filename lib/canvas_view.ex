@@ -54,7 +54,7 @@ defmodule Vizi.CanvasView do
       %Vizi.Animation{} = anim ->
         anim
       _bad_return ->
-        raise ArgumentError, message: "bad return value from #{inspect fun}, expected an animation"
+        raise "bad return value from #{inspect fun}, expected an animation"
     end
     root = anim
     |> map_params()
