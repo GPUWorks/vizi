@@ -60,6 +60,12 @@ defmodule Vizi.Animation do
     maybe_set_next(prev, anim)
   end
 
+  @spec set(t, length) :: t
+  def set(prev \\ nil, values) do
+    anim = %Vizi.Animation{values: values, length: 1, easing: get_easing_fun(:lin)}
+    maybe_set_next(prev, anim)
+  end
+
   @spec into(t, Vizi.Node.t) :: Vizi.Node.t
   def into(anim, node) do
     anim = set_values(anim, node)

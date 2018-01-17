@@ -48,6 +48,7 @@ defmodule TestC1 do
     t = if c.x < 200 do
       tween(%{x: 300}, in: msec(1000), use: :sin_inout)
       |> pause(60)
+      |> set(%{rotate: 1})
       |> tween(%{y: 300}, in: sec(4), use: :quart_inout)
     else
       tween(%{x: 100}, in: min(0.5), use: :sin_inout)
