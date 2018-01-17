@@ -22,7 +22,7 @@ void vz_make_atoms(ErlNifEnv* env) {
   ATOM_PIXEL_RATIO = enif_make_atom(env, "pixel_ratio");
   ATOM_SHUTDOWN = enif_make_atom(env, "vz_shutdown");
   ATOM_REPLY = enif_make_atom(env, "vz_reply");
-  ATOM_DRAW = enif_make_atom(env, "vz_draw");
+  ATOM_UPDATE = enif_make_atom(env, "vz_update");
   ATOM_EVENT = enif_make_atom(env, "vz_event");
 
   ATOM__STRUCT__ = enif_make_atom(env, "__struct__");

@@ -230,8 +230,8 @@ defmodule Vizi.View do
   end
 
   @doc false
-  def handle_info({:vz_draw, _ts}, state) do
-    root = Vizi.Node.draw(state.root, state.context)
+  def handle_info({:vz_update, _ts}, state) do
+    root = Vizi.Node.update(state.root, state.context)
     Vizi.NIF.ready(state.context)
     {:noreply, %{state|root: root}}
   end

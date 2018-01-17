@@ -58,7 +58,7 @@ defmodule Vizi.Node do
 
   This function can be used for setting up fonts, images and other resources that are needed for drawing.
   """
-  @callback init(el :: Vizi.Node.t, ctx :: Vizi.View.context) ::
+  @callback init(node :: Vizi.Node.t, ctx :: Vizi.View.context) ::
   {:ok, new_el} when new_el: Vizi.Node.t
 
   @doc """
@@ -67,7 +67,7 @@ defmodule Vizi.Node do
   """
   @callback draw(params :: params, width :: number, height :: number, ctx :: Vizi.View.context) :: term
 
-  @callback handle_event(el :: Vizi.Node.t, event :: struct) ::
+  @callback handle_event(node :: Vizi.Node.t, event :: struct) ::
   :cont | :done |
   {:done, new_el} |
   {:cont, new_el} when new_el: Vizi.Node.t
@@ -78,8 +78,8 @@ defmodule Vizi.Node do
       @behaviour Vizi.Node
 
       @doc false
-      def init(el, _ctx) do
-        {:ok, el}
+      def init(node, _ctx) do
+        {:ok, node}
       end
 
       @doc false
@@ -119,38 +119,38 @@ defmodule Vizi.Node do
     }
   end
 
-  @spec put_front(parent :: t, el :: t) :: t
-  def put_front(%Node{children: children} = parent, el) do
-    children = List.delete(children, el)
-    %Node{parent|children: children ++ [el]}
+  @spec put_front(parent :: t, node :: t) :: t
+  def put_front(%Node{children: children} = parent, node) do
+    children = List.delete(children, node)
+    %Node{parent|children: children ++ [node]}
   end
 
-  @spec put_back(parent :: t, el :: t) :: t
-  def put_back(%Node{children: children} = parent, el) do
-    children = List.delete(children, el)
-    %Node{parent|children: [el | children]}
+  @spec put_back(parent :: t, node :: t) :: t
+  def put_back(%Node{children: children} = parent, node) do
+    children = List.delete(children, node)
+    %Node{parent|children: [node | children]}
   end
 
-  @spec put_before(parent :: t, member :: t, el :: t) :: t
-  def put_before(%Node{} = parent, member, el) do
-    put_ba(parent, :before, member, el)
+  @spec put_before(parent :: t, member :: t, node :: t) :: t
+  def put_before(%Node{} = parent, member, node) do
+    put_ba(parent, :before, member, node)
   end
 
-  @spec put_after(parent :: t, member :: t, el :: t) :: t
-  def put_after(%Node{} = parent, member, el) do
-    put_ba(parent, :after, member, el)
+  @spec put_after(parent :: t, member :: t, node :: t) :: t
+  def put_after(%Node{} = parent, member, node) do
+    put_ba(parent, :after, member, node)
   end
 
-  defp put_ba(parent, op, member, el) do
+  defp put_ba(parent, op, member, node) do
     put_fun = case op do
-      :before -> fn acc -> [el, member | acc] end
-      :after  -> fn acc -> [member, el | acc] end
+      :before -> fn acc -> [node, member | acc] end
+      :after  -> fn acc -> [member, node | acc] end
     end
 
     {_del, put, children} = Enum.reduce(parent.children, {false, false, []}, fn x, {del, put, acc} ->
       cond do
         not put and x == member -> {del, true, put_fun.(acc)}
-        not del and x == el     -> {true, put, acc}
+        not del and x == node     -> {true, put, acc}
         true                    -> {del, put, [x | acc]}
       end
     end)
@@ -162,9 +162,9 @@ defmodule Vizi.Node do
     end
   end
 
-  @spec remove(parent :: t, el :: t) :: t
-  def remove(%Node{children: children} = parent, el) do
-    children = Enum.filter(children, &(&1 != el))
+  @spec remove(parent :: t, node :: t) :: t
+  def remove(%Node{children: children} = parent, node) do
+    children = Enum.filter(children, &(&1 != node))
     %Node{parent|children: children}
   end
 
@@ -187,7 +187,7 @@ defmodule Vizi.Node do
   @spec one(parent :: t, tags :: tag | [tag]) :: {:ok, t} | nil | :error
   def one(%Node{} = parent, tags) do
     case all(parent, tags) do
-      [el] -> {:ok, el}
+      [node] -> {:ok, node}
       []   -> nil
       _    -> :error
     end
@@ -219,37 +219,37 @@ defmodule Vizi.Node do
     %Node{parent|children: children}
   end
 
-  @spec put_param(el :: t, key :: atom, value :: term) :: t
-  def put_param(%Node{params: params} = el, key, value) do
-    %Node{el|params: Map.put(params, key, value)}
+  @spec put_param(node :: t, key :: atom, value :: term) :: t
+  def put_param(%Node{params: params} = node, key, value) do
+    %Node{node|params: Map.put(params, key, value)}
   end
 
-  @spec put_params(el :: t, params :: params) :: t
-  def put_params(%Node{} = el, params) do
-    %Node{el|params: Map.merge(el.params, params)}
+  @spec put_params(node :: t, params :: params) :: t
+  def put_params(%Node{} = node, params) do
+    %Node{node|params: Map.merge(node.params, params)}
   end
 
-  @spec update_param(el :: t, key :: atom, initial :: term, fun :: (term -> term)) :: t
-  def update_param(%Node{params: params} = el, key, initial, fun) do
-    %Node{el|params: Map.update(params, key, initial, fun)}
+  @spec update_param(node :: t, key :: atom, initial :: term, fun :: (term -> term)) :: t
+  def update_param(%Node{params: params} = node, key, initial, fun) do
+    %Node{node|params: Map.update(params, key, initial, fun)}
   end
 
-  @spec update_param!(el :: t, key :: atom, fun :: (term -> term)) :: t
-  def update_param!(%Node{params: params} = el, key, fun) do
-    %Node{el|params: Map.update!(params, key, fun)}
+  @spec update_param!(node :: t, key :: atom, fun :: (term -> term)) :: t
+  def update_param!(%Node{params: params} = node, key, fun) do
+    %Node{node|params: Map.update!(params, key, fun)}
   end
 
-  @spec update_params!(el :: t, updates) :: t
-  def update_params!(%Node{params: params} = el, updates) do
+  @spec update_params!(node :: t, updates) :: t
+  def update_params!(%Node{params: params} = node, updates) do
     params = Enum.reduce(updates, params, fn {key, fun}, acc ->
       Map.update!(acc, key, fun)
     end)
-    %Node{el|params: params}
+    %Node{node|params: params}
   end
 
-  @spec update_attributes(el :: t, updates) :: t
-  def update_attributes(el, updates) do
-    Enum.reduce(updates, el, fn {key, fun}, acc ->
+  @spec update_attributes(node :: t, updates) :: t
+  def update_attributes(node, updates) do
+    Enum.reduce(updates, node, fn {key, fun}, acc ->
       Map.update!(acc, key, fun)
     end)
   end
@@ -257,80 +257,78 @@ defmodule Vizi.Node do
   # Internals
 
   @doc false
-  def draw(%Node{mod: mod} = el, ctx) do
+  def update(%Node{mod: mod} = node, ctx) do
     NIF.save(ctx)
-    el = maybe_init(el, ctx)
-    el = case el.animations do
-          []      -> el
-          _animations -> Vizi.Animation.step(el)
-         end
-    NIF.setup_node(ctx, el)
-    params = case mod.draw(el.params, el.width, el.height, ctx) do
-      {:ok, params} ->
-        params
-      bad_return ->
-        raise "bad return value from #{inspect el.mod}.draw/4: #{inspect bad_return}"
-    end
-    children = draw(el.children, ctx)
+    node = node |> maybe_init(ctx) |> maybe_animate()
+    NIF.setup_node(ctx, node)
+    mod.draw(node.params, node.width, node.height, ctx)
+    children = update(node.children, ctx)
     NIF.restore(ctx)
-    %Node{el|params: params, children: children}
+    %Node{node|children: children}
   end
-  def draw(els, ctx) when is_list(els) do
-    Enum.map(els, &draw(&1, ctx))
+  def update(els, ctx) when is_list(els) do
+    Enum.map(els, &update(&1, ctx))
   end
 
-  defp maybe_init(%Node{initialized: false} = el, ctx) do
-    case el.mod.init(el, ctx) do
-      {:ok, el} ->
-        %Node{el|xform: NIF.transform_translate(0, 0), initialized: true}
+  defp maybe_init(%Node{initialized: false} = node, ctx) do
+    case node.mod.init(node, ctx) do
+      {:ok, node} ->
+        %Node{node|xform: NIF.transform_translate(0, 0), initialized: true}
       bad_return ->
-        raise "bad return value from #{inspect el.mod}.init/2: #{inspect bad_return}"
+        raise "bad return value from #{inspect node.mod}.init/2: #{inspect bad_return}"
     end
   end
-  defp maybe_init(el, _ctx), do: el
+  defp maybe_init(node, _ctx), do: node
+
+  defp maybe_animate(%Node{animations: []} = node) do
+    node
+  end
+  defp maybe_animate(node) do
+    Vizi.Animation.step(node)
+  end
 
   @doc false
-  def handle_events(%Node{} = el, events, ctx) do
+  def handle_events(%Node{} = node, events, ctx) do
 
-    {el, events} = Enum.reduce(events, {el, []}, &maybe_handle_event/2)
-    {children, events} = handle_events(el.children, Enum.reverse(events), ctx)
-    {%Node{el | children: children}, events}
+    {node, events} = Enum.reduce(events, {node, []}, &maybe_handle_event/2)
+    {children, events} = handle_events(node.children, Enum.reverse(events), ctx)
+    {%Node{node | children: children}, events}
   end
   def handle_events(els, events, ctx) when is_list(els) do
-    {els, events} = Enum.reduce(els, {[], events}, fn el, {els, evs} ->
-      {new_el, new_evs} = handle_events(el, evs, ctx)
+    {els, events} = Enum.reduce(els, {[], events}, fn node, {els, evs} ->
+      {new_el, new_evs} = handle_events(node, evs, ctx)
       {[new_el | els], new_evs}
     end)
     {Enum.reverse(els), events}
   end
 
-  defp maybe_handle_event(%Events.Custom{} = ev, {el, acc}) do
-    handle_event(el, ev, acc)
+  defp maybe_handle_event(%Events.Custom{} = ev, {node, acc}) do
+    handle_event(node, ev, acc)
   end
-  defp maybe_handle_event(%{type: type} = ev, {el, acc})
+  defp maybe_handle_event(%{type: type} = ev, {node, acc})
   when type in ~w(button_press button_release key_press key_release motion scroll)a do
-    inv_xform = NIF.transform_inverse(el.xform)
+    inv_xform = NIF.transform_inverse(node.xform)
     {x, y} = NIF.transform_point(inv_xform, ev.abs_x, ev.abs_y)
-    if touches?(el, x, y) do
-      handle_event(el, %{ev|x: x, y: y}, acc)
+    if touches?(node, x, y) do
+      handle_event(node, %{ev|x: x, y: y}, acc)
     else
-      {el, [ev | acc]}
+      {node, [ev | acc]}
     end
   end
-  defp maybe_handle_event(ev, {el, acc}) do
-    {el, [ev | acc]}
+  defp maybe_handle_event(ev, {node, acc}) do
+    {node, [ev | acc]}
   end
 
-  defp handle_event(el, ev, acc) do
-    case el.mod.handle_event(el, ev) do
+  defp handle_event(node, ev, acc) do
+    case node.mod.handle_event(node, ev) do
       :cont ->
-        {el, [ev | acc]}
+        {node, [ev | acc]}
       {:done, new_el} ->
         {new_el, acc}
       {:cont, new_el} ->
         {new_el, [ev | acc]}
       :done ->
-        {el, acc}
+        {node, acc}
     end
   end
 

@@ -90,9 +90,9 @@ static inline void vz_end_frame(VZview *vz_view) {
   nvgEndFrame(vz_view->ctx);
 }
 
-static inline void vz_send_draw(VZview *vz_view) {
+static inline void vz_send_update(VZview *vz_view) {
   unsigned time = 0;//(vz_view->time.tv_sec * 1000) + (vz_view->time.tv_nsec / 1000000);
-  ERL_NIF_TERM msg = enif_make_tuple2(vz_view->msg_env, ATOM_DRAW, enif_make_uint(vz_view->msg_env, time));
+  ERL_NIF_TERM msg = enif_make_tuple2(vz_view->msg_env, ATOM_UPDATE, enif_make_uint(vz_view->msg_env, time));
   enif_send(NULL, &vz_view->view_pid, vz_view->msg_env, msg);
   enif_clear_env(vz_view->msg_env);
 }
@@ -233,9 +233,9 @@ shutdown:
   return NULL;
 }
 
-void vz_draw(VZview *vz_view) {
+void vz_update(VZview *vz_view) {
   vz_begin_frame(vz_view);
-  vz_send_draw(vz_view);
+  vz_send_update(vz_view);
   vz_run(vz_view);
   vz_end_frame(vz_view);
 }

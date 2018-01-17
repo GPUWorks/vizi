@@ -285,11 +285,11 @@ void vz_on_event(PuglView* view, const PuglEvent* event) {
         vz_view->height_factor = configure->height / (double)vz_view->init_height;
         ERL_NIF_TERM configure_struct = vz_make_configure_event_struct(vz_view->ev_env, configure);
         VZev_array_push(vz_view->ev_array, configure_struct);
-        vz_draw(vz_view);
+        vz_update(vz_view);
         break;
       }
       case PUGL_EXPOSE:
-        vz_draw(vz_view);
+        vz_update(vz_view);
         break;
       case PUGL_CLOSE:
         vz_view->shutdown = true;
