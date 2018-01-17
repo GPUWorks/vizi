@@ -42,7 +42,11 @@ defmodule Vizi.CanvasView do
   end
 
   def handle_cast({:draw, params, fun}, root, state) do
-    {:noreply, Vizi.Node.put_params(root, %{fun: fun, params: params}), state}
+    root = root
+    |> Vizi.Animation.remove_all()
+    |> Vizi.Node.put_params(%{fun: fun, params: params})
+
+    {:noreply, root, state}
   end
 
   def handle_cast({:animate, anim}, root, state) do
