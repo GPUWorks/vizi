@@ -72,6 +72,11 @@ defmodule Vizi.Animation do
     %Vizi.Node{node|animations: [anim | node.animations]}
   end
 
+  @spec remove_all(Vizi.Node.t) :: Vizi.Node.t
+  def remove_all(node) do
+    %Vizi.Node{node|animations: []}
+  end
+
   @spec step(Vizi.Node.t) :: Vizi.Node.t
   def step(%Vizi.Node{animations: animations} = node) do
     Enum.reduce(animations, %Vizi.Node{node|animations: []}, fn anim, acc ->
