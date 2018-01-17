@@ -59,6 +59,7 @@ defmodule Vizi.CanvasView do
     root = anim
     |> map_params()
     |> Vizi.Animation.into(root)
+
     {:noreply, root, state}
   end
 

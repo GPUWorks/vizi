@@ -3,7 +3,7 @@
 ## Introduction
 
 Vizi is a antialiased 2D vector based visualization and GUI library for Elixir. It offers a simple
-scene graph, window and event handling, and 2D drawing functions that are loosely based on the HTML5 canvas
+scene graph, window and event handling, animations, and 2D drawing functions that are loosely based on the HTML5 canvas
 API.
 
 All drawing is powered by [NanoVG](https://github.com/memononen/nanovg). NanoVG uses OpenGL as a render
@@ -13,6 +13,9 @@ All window and event handling is provided by [Pugl](https://github.com/drobilla/
 
 
 ## Getting started
+
+
+### Installing
 
 The easiest way to get started is by using the Hex package. The package currently provides pre-build binaries
 for 64-bit Windows and Linux systems and can be installed by adding `vizi` to your list of dependencies
@@ -26,6 +29,9 @@ def deps do
 end
 ```
 
+
+### Creating a View
+
 Vizi provides the `Vizi.CanvasView` module for easy experimentation with the drawing API, so we'll
 start off by using this module. `Vizi.CanvasView` provides just two public functions: `start_link/1`
 and `draw/3`.
@@ -34,24 +40,24 @@ We begin with an empty window that has a canvas area of 800 x 600 pixels. Vizi b
 supports manual redrawing and redrawing at a fixed interval. For now we use interval
 based redrawing at a frame rate of 30 fps.
 ```elixir
-iex> {:ok, pid} = Vizi.CanvasView.start_link(width: 800, height: 600,
-                                             redraw_mode: :interval, frame_rate: 30)
-{:ok, #PID<0.256.0>}
+{:ok, pid} = Vizi.CanvasView.start_link(width: 800, height: 600,
+                                        redraw_mode: :interval, frame_rate: 30)
 ```
 
 You should now see a new window filled with nothing but emptyness. Let's start drawing something in to it!
 
+
+### Drawing on a canvas
+
 ```elixir
-iex> Vizi.CanvasView.draw(pid, %{}, fn params, width, height, ctx ->
+Vizi.CanvasView.draw(pid, %{red: 255}, fn params, width, height, ctx ->
   use Vizi.Canvas
 
   ctx
   |> begin_path()
   |> rect(0, 0, width, height)
-  |> fill_color(rgba 255, 0, 0)
+  |> fill_color(rgba params.red, 0, 0)
   |> fill()
-
-  {:ok, params}
 end)
 ```
 
@@ -59,9 +65,9 @@ The contents of our window should now contain a red rectangle the size of the ca
 the snippet above line by line.
 
 The first argument of the `draw/3` function is the `pid` of our `CanvasView` instance, the second
-argument is a parameters term that is passed to the drawing function every time it is invoked. The params
-argument accepts any Elixir term, but is a map by convention. The third argument expects a function that performs
-the actual drawing. The signature of this function is expected to be: `(params, width, height, context -> {:ok, params})`
+argument is a parameters map that is passed to the drawing function every time it is invoked. Parameters are
+especially useful for animations, as we will see in the next example. The third argument expects a function that performs
+the actual drawing. The signature of this function is expected to be: `(params, width, height, context -> any)`
 The first argument are the aforementioned params, the second and third argument are the width and height of
 the view and the fourth and last argument is a handle to the drawing context. The drawing context is an opaque
 resource type managed by the native code part of Vizi.
@@ -82,46 +88,71 @@ Calling `begin_path/1` will clear any existing paths and start drawing from blan
 functions to define the path to draw, such as `rectangle`, `rounded rectangle` and `ellipse`, or you can use the common
 `move_to`, `line_to`, `bezier_to` and `arc_to` functions to compose the paths step by step.
 
-Finally, we return from our drawing function with `{:ok, params}`. `CanvasView` stores the returned params and passes
-it to our drawing function the next time it is invoked. This is very useful when you want to animate things over time,
-which is extactly what we are going to do with the next example:
+
+### Animations
+
+Since looking at a big red surface is rather dull, let's add an animation to make things more interesting:
 
 ```elixir
-iex> Vizi.CanvasView.draw(pid, %{red: 0}, fn params, width, height, ctx ->
-  use Vizi.Canvas
+Vizi.CanvasView.animate(pid, fn ->
+  import Vizi.Animation
 
-  ctx
-  |> begin_path()
-  |> rect(0, 0, width, height)
-  |> fill_color(rgba params.red, 0, 0)
-  |> fill()
-
-  {:ok, update_in(params.red, fn x -> if x == 255, do: 0, else: x + 1 end)}
+  tween(%{red: 0}, in: sec(3), mode: :pingpong, use: :quad_out)
 end)
 ```
 
-The canvas area should now start completely black, gradually becoming more red and after becoming fully red,
-the cycle should repeat itself.
+The canvas area should loop between a 3 second fade to black and fade back to red again.
+Vizi uses tweening for animations which allow parameters (and attributes, which we'll cover later) to be
+animated over time.
 
-iex> Vizi.CanvasView.draw(pid, %{}, fn params, width, height, ctx ->
+The first argument defines which parameters need to be animated and what their target value should be.
+The duration of the animation must be set with the `:in` option and expects the duration to be in frames. However, the `Vizi.Animation`
+module has a couple of handy helper functions which convert a duration in seconds, milliseconds, or minutes to frames. With the `:mode`
+option you specify the playback mode of the animation. The default mode is `:once`, meaning the animation is triggered once and when the
+target value is reached, the animation is automatically removed. In the example above we have set the mode to `:pingpong` which means
+the animation is constantly looped forward and backward. Last but not least, the `:use` option sets the used easing function. Easing
+functions define the rate at which something moves over time. The `:exp_in` easing function for example starts to move slowly to its target
+value, but accelerates its rate exponentially.
+
+Animations can be chained too, allowing you to easily define complex animations.
+
+We'll finish this getting started guide with a more complex shape and a chained animation.
+
+```elixir
+Vizi.CanvasView.draw(pid, %{size: 1, angle: 0}, fn params, width, height, ctx ->
   use Vizi.Canvas
 
-    ctx
-    |> stroke_color(rgba 255, 0, 0)
-    |> fill_color(rgba 255, 0, 0)
-    |> begin_path()
-    |> move_to(75, 40)
-    |> bezier_to(75, 37, 70, 25, 50, 25)
-    |> bezier_to(20, 25, 20, 62.5, 20, 62.5)
-    |> bezier_to(20, 80, 40, 102, 75, 120)
-    |> bezier_to(110, 102, 130, 80, 130, 62.5)
-    |> bezier_to(130, 62.5, 130, 25, 100, 25)
-    |> bezier_to(85, 25, 75, 37, 75, 40)
-    |> fill()
+    paint = Paint.box_gradient(ctx, 0, 0, width, height, 200, 500, rgba(255, 0, 0), rgba(255, 255, 255))
 
-    {:ok, params}
+    ctx
+    |> scale(params.size, params.size)
+    |> translate(width / 2, height / 2)
+    |> rotate(deg_to_rad(params.angle))
+    |> translate(-width / 2, -height / 2)
+    |> fill_paint(paint)
+    |> begin_path()
+    |> move_to(400, 160)
+    |> bezier_to(400, 148, 380, 100, 300, 100)
+    |> bezier_to(180, 100, 180, 250, 180, 250)
+    |> bezier_to(180, 320, 260, 408, 400, 480)
+    |> bezier_to(540, 408, 620, 320, 620, 250)
+    |> bezier_to(620, 250, 620, 100, 500, 100)
+    |> bezier_to(440, 100, 400, 148, 400, 160)
+    |> fill()
 end)
+
+Vizi.CanvasView.animate(pid, fn ->
+  import Vizi.Animation
+
+  set(%{size: 1, angle: 0})
+  |> tween(%{size: 1.1}, in: sec(0.3), use: :sin_out)
+  |> tween(%{size: 1}, in: sec(0.3), use: :sin_out)
+  |> pause(sec(0.5))
+  |> tween(%{angle: 360}, in: sec(2), use: :cubic_inout)
+end)
+```
 
 
 ## Architecture
+
 
