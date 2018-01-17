@@ -45,7 +45,7 @@ defmodule Vizi.Animation do
 
   # Public API
 
-  @spec tween(t, values, options) :: t
+  @spec tween(t | nil, values, options) :: t
   def tween(prev \\ nil, values, opts) do
     length = Keyword.fetch!(opts, :in)
     mode = Keyword.get(opts, :mode, :once)
@@ -54,13 +54,13 @@ defmodule Vizi.Animation do
     maybe_set_next(prev, anim)
   end
 
-  @spec pause(t, length) :: t
+  @spec pause(t | nil, length) :: t
   def pause(prev \\ nil, length) do
     anim = %Vizi.Animation{length: length}
     maybe_set_next(prev, anim)
   end
 
-  @spec set(t, length) :: t
+  @spec set(t | nil, values) :: t
   def set(prev \\ nil, values) do
     anim = %Vizi.Animation{values: values, length: 1, easing: get_easing_fun(:lin)}
     maybe_set_next(prev, anim)

@@ -180,16 +180,4 @@ defmodule T do
     ts2 = :os.timestamp()
     :timer.now_diff(ts2, ts1) / 1000
   end
-
-  def bm_native do
-    n = %Vizi.Node{}
-    t = Vizi.Animation.tween(%{x: 100}, in: 10_000_000, use: &Vizi.NIF.easing_quad_inout/4)
-    n = Vizi.Animation.into(t, n)
-    ts1 = :os.timestamp()
-    Enum.reduce(1..10_000_000, n, fn _x, acc ->
-      Vizi.Animation.step(acc)
-    end)
-    ts2 = :os.timestamp()
-    :timer.now_diff(ts2, ts1) / 1000
-  end
 end
