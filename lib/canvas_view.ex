@@ -8,11 +8,11 @@ defmodule Vizi.CanvasView do
     Vizi.View.start_link(__MODULE__, nil, opts)
   end
 
-  def draw(server, params, fun) do
+  def draw(server, params, fun) when is_function(fun, 4) do
     Vizi.View.cast(server, {:draw, params, fun})
   end
 
-  def animate(server, anim) do
+  def animate(server, %Vizi.Animation{} = anim) do
     Vizi.View.cast(server, {:animate, anim})
   end
 
@@ -46,14 +46,9 @@ defmodule Vizi.CanvasView do
   end
 
   def handle_cast({:animate, anim}, root, state) do
-    root = case anim do
-             %Vizi.Animation{} ->
-               anim
-               |> map_params()
-               |> Vizi.Animation.into(root)
-             _badarg ->
-               raise ArgumentError
-           end
+    root = anim
+    |> map_params()
+    |> Vizi.Animation.into(root)
     {:noreply, root, state}
   end
 
