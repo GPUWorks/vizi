@@ -134,10 +134,29 @@ VZimage* vz_alloc_image(VZview *view, int handle) {
   return image;
 }
 
+  struct vz_image_dtor_args {
+    int handle;
+  };
+  static void vz_image_dtor_handler(VZview *vz_view, void *void_args) {
+    NVGcontext *ctx = vz_view->ctx;
+    struct vz_image_dtor_args *args = (struct vz_image_dtor_args*)void_args;
+    nvgDeleteImage(ctx, args->handle);
+    printf("image %d deleted!\r\n", args->handle);
+  }
+
+
 void vz_image_dtor(ErlNifEnv *env, void *resource) {
   VZimage *image = (VZimage*)resource;
-  if(!image->view->shutdown)
-    nvgDeleteImage(image->view->ctx, image->handle);
+  if(!image->view->shutdown) {
+    struct vz_image_dtor_args *args = (struct vz_image_dtor_args*)malloc(sizeof(struct vz_image_dtor_args));
+    VZop vz_op;
+    vz_op.handler = vz_image_dtor_handler;
+    vz_op.args = args;
+    args->handle = image->handle;
+    enif_mutex_lock(image->view->lock);
+    VZop_array_push(image->view->op_array, vz_op);
+    enif_mutex_unlock(image->view->lock);
+  }
 }
 
 

@@ -43,12 +43,15 @@ defmodule TestC1 do
   end
 
   def handle_event(node, %Events.Button{type: :button_release} = ev) do
+    #IO.inspect :gcprof_aggregator.get_stats()
     import Vizi.Animation
 
     node = Vizi.Node.add_task(node, fn params, _width, _height, ctx ->
       bm = Bitmap.create(ctx, 500, 300)
+      offset1 = :rand.uniform(256)
+      offset2 = :rand.uniform(256)
       Enum.each(0..(Bitmap.size(bm) - 1), fn n ->
-        Bitmap.put(bm, n, 255 - rem(n, 256), rem(n, 256), 128, 255)
+        Bitmap.put(bm, n, 255 - rem(offset1 + n, 256), rem(offset2 + n, 256), 128, 255)
       end)
       img = Image.from_bitmap(ctx, bm)
 
@@ -158,7 +161,7 @@ defmodule T do
   use Vizi.View
 
   def s do
-    {:ok, _pid} = Vizi.View.start_link(__MODULE__, nil, redraw_mode: :interval, frame_rate: 60)
+    {:ok, _pid} = Vizi.View.start_link(__MODULE__, nil, redraw_mode: :interval, frame_rate: 10)
   end
 
   def init(_args, _width, _height) do
