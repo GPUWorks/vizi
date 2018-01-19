@@ -109,7 +109,7 @@ static inline void vz_run(VZview *vz_view) {
     a->start_pos = a->end_pos;
   } while(vz_view->busy);
   for(unsigned i = 0; i < a->end_pos; ++i) {
-    free(a->array[i].args);
+    enif_free(a->array[i].args);
   }
   VZop_array_clear(a);
 }

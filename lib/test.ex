@@ -43,7 +43,6 @@ defmodule TestC1 do
   end
 
   def handle_event(node, %Events.Button{type: :button_release} = ev) do
-    #IO.inspect :gcprof_aggregator.get_stats()
     import Vizi.Animation
 
     node = Vizi.Node.add_task(node, fn params, _width, _height, ctx ->
@@ -161,13 +160,13 @@ defmodule T do
   use Vizi.View
 
   def s do
-    {:ok, _pid} = Vizi.View.start_link(__MODULE__, nil, redraw_mode: :interval, frame_rate: 10)
+    {:ok, _pid} = Vizi.View.start_link(__MODULE__, nil, redraw_mode: :interval, frame_rate: 60)
   end
 
   def init(_args, _width, _height) do
-    root = TestC1.create(x: 100, y: 100, width: 500, height: 300, children: [
-      TestC2.create(x: 100, y: 100, width: 100, height: 100)
-    ])
+    root = TestC1.create(x: 100, y: 100, width: 500, height: 300, children: for n <- 0..200 do
+      TestC2.create(x: n, y: n, width: 100, height: 100, alpha: 0.05)
+    end)
     {:ok, root, nil}
   end
 

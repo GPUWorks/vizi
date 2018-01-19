@@ -17,40 +17,40 @@
 #    define MAX(a, b) (((a) > (b)) ? (a) : (b))
 #endif
 
-#define VZ_ASYNC_DECL(decl, fields_block, handler_block, caller_block)                        \
-  struct decl ## _args fields_block;                                                          \
-  static void decl ## _handler(VZview *vz_view, void *void_args) {                            \
-    NVGcontext *ctx = vz_view->ctx;                                                           \
-    struct decl ## _args *args = (struct decl ## _args*)void_args;                            \
-    do handler_block while(0);                                                                \
-  }                                                                                           \
-  static ERL_NIF_TERM decl(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) {             \
-    struct decl ## _args *args = (struct decl ## _args*)malloc(sizeof(struct decl ## _args)); \
-    bool execute = false;                                                                     \
-    VZview *vz_view;                                                                          \
-    VZop vz_op;                                                                               \
-    vz_op.handler = decl ## _handler;                                                         \
-    vz_op.args = args;                                                                        \
-    ERL_NIF_TERM ret = argv[0];                                                               \
-    if(!enif_get_resource(env, argv[0], vz_view_res, (void**)&vz_view)) {                     \
-      goto err;                                                                               \
-    }                                                                                         \
-    do caller_block while(0);                                                                 \
-    enif_mutex_lock(vz_view->lock);                                                           \
-    VZop_array_push(vz_view->op_array, vz_op);                                                \
-    if(execute) {                                                                             \
-      enif_cond_signal(vz_view->execute_cv);                                                  \
-      enif_mutex_unlock(vz_view->lock);                                                       \
-      return ATOM_OK;                                                                         \
-    }                                                                                         \
-    else {                                                                                    \
-      enif_mutex_unlock(vz_view->lock);                                                       \
-      return ret;                                                                             \
-    }                                                                                         \
-    err:                                                                                      \
-    free(args);                                                                               \
-    return BADARG;                                                                            \
-  }                                                                                           \
+#define VZ_ASYNC_DECL(decl, fields_block, handler_block, caller_block)                            \
+  struct decl ## _args fields_block;                                                              \
+  static void decl ## _handler(VZview *vz_view, void *void_args) {                                \
+    NVGcontext *ctx = vz_view->ctx;                                                               \
+    struct decl ## _args *args = (struct decl ## _args*)void_args;                                \
+    do handler_block while(0);                                                                    \
+  }                                                                                               \
+  static ERL_NIF_TERM decl(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) {                 \
+    struct decl ## _args *args = (struct decl ## _args*)enif_alloc(sizeof(struct decl ## _args)); \
+    bool execute = false;                                                                         \
+    VZview *vz_view;                                                                              \
+    VZop vz_op;                                                                                   \
+    vz_op.handler = decl ## _handler;                                                             \
+    vz_op.args = args;                                                                            \
+    ERL_NIF_TERM ret = argv[0];                                                                   \
+    if(!enif_get_resource(env, argv[0], vz_view_res, (void**)&vz_view)) {                         \
+      goto err;                                                                                   \
+    }                                                                                             \
+    do caller_block while(0);                                                                     \
+    enif_mutex_lock(vz_view->lock);                                                               \
+    VZop_array_push(vz_view->op_array, vz_op);                                                    \
+    if(execute) {                                                                                 \
+      enif_cond_signal(vz_view->execute_cv);                                                      \
+      enif_mutex_unlock(vz_view->lock);                                                           \
+      return ATOM_OK;                                                                             \
+    }                                                                                             \
+    else {                                                                                        \
+      enif_mutex_unlock(vz_view->lock);                                                           \
+      return ret;                                                                                 \
+    }                                                                                             \
+    err:                                                                                          \
+    enif_free(args);                                                                              \
+    return BADARG;                                                                                \
+  }                                                                                               \
 
 #define VZ_GET_NUMBER(env, term, value)     \
   if(!enif_get_double(env, term, &value)) { \

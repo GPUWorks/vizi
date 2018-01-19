@@ -80,7 +80,7 @@ void vz_view_dtor(ErlNifEnv *env, void *resource) {
   enif_free_env(vz_view->ev_env);
 
   for(unsigned i = 0; i < vz_view->op_array->end_pos; ++i) {
-    free(vz_view->op_array->array[i].args);
+    enif_free(vz_view->op_array->array[i].args);
   }
   VZop_array_free(vz_view->op_array);
   VZev_array_free(vz_view->ev_array);
@@ -148,7 +148,7 @@ VZimage* vz_alloc_image(VZview *view, int handle) {
 void vz_image_dtor(ErlNifEnv *env, void *resource) {
   VZimage *image = (VZimage*)resource;
   if(!image->view->shutdown) {
-    struct vz_image_dtor_args *args = (struct vz_image_dtor_args*)malloc(sizeof(struct vz_image_dtor_args));
+    struct vz_image_dtor_args *args = (struct vz_image_dtor_args*)enif_alloc(sizeof(struct vz_image_dtor_args));
     VZop vz_op;
     vz_op.handler = vz_image_dtor_handler;
     vz_op.args = args;
