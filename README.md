@@ -1,7 +1,5 @@
 # Vizi
 
-## Introduction
-
 Vizi is a antialiased 2D vector based visualization and GUI library for Elixir. It offers a simple
 scene graph, window and event handling, animations, and 2D drawing functions that are loosely based on the HTML5 canvas
 API.
@@ -33,8 +31,7 @@ end
 ### Creating a View
 
 Vizi provides the `Vizi.CanvasView` module for easy experimentation with the drawing API, so we'll
-start off by using this module. `Vizi.CanvasView` provides just two public functions: `start_link/1`
-and `draw/3`.
+start off by using this module.
 
 We begin with an empty window that has a canvas area of 800 x 600 pixels. Vizi both
 supports manual redrawing and redrawing at a fixed interval. For now we use interval
@@ -67,9 +64,9 @@ the snippet above line by line.
 The first argument of the `draw/3` function is the `pid` of our `CanvasView` instance, the second
 argument is a parameters map that is passed to the drawing function every time it is invoked. Parameters are
 especially useful for animations, as we will see in the next example. The third argument expects a function that performs
-the actual drawing. The signature of this function is expected to be: `(params, width, height, context -> any)`
+the actual drawing. The signature of this function should be: `(params, width, height, context -> any)`
 The first argument are the aforementioned params, the second and third argument are the width and height of
-the view and the fourth and last argument is a handle to the drawing context. The drawing context is an opaque
+the view and the last argument is a handle to the drawing context. The drawing context is an opaque
 resource type managed by the native code part of Vizi.
 
 All drawing related functions are in the `Vizi.Canvas` module and its submodules. You can call
@@ -85,8 +82,8 @@ Drawing a simple shape with Vizi consists of four steps:
 4. and finally fill or stroke the path.
 
 Calling `begin_path/1` will clear any existing paths and start drawing from blank slate. There are number of number of
-functions to define the path to draw, such as `rectangle`, `rounded rectangle` and `ellipse`, or you can use the common
-`move_to`, `line_to`, `bezier_to` and `arc_to` functions to compose the paths step by step.
+functions to define the path to draw, such as `rect/5`, `rounded_rect/6` and `ellipse/5`, or you can use the common
+`move_to/3`, `line_to/3`, `bezier_to/7` and `arc_to/6` functions to compose the paths step by step.
 
 
 ### Animations
@@ -105,12 +102,12 @@ The canvas area should loop between a 3 second fade to black and fade back to re
 Vizi uses tweening for animations which allow parameters (and attributes, which we'll cover later) to be
 animated over time.
 
-The first argument defines which parameters need to be animated and what their target value should be.
+The first argument of the tween defines which parameters need to be animated and what their target value should be.
 The duration of the animation must be set with the `:in` option and expects the duration to be in frames. However, the `Vizi.Animation`
 module has a couple of handy helper functions which convert a duration in seconds, milliseconds, or minutes to frames. With the `:mode`
 option you specify the playback mode of the animation. The default mode is `:once`, meaning the animation is triggered once and when the
 target value is reached, the animation is automatically removed. In the example above we have set the mode to `:pingpong` which means
-the animation is constantly looped forward and backward. Last but not least, the `:use` option sets the used easing function. Easing
+the animation is constantly looped forward and backward. Last but not least, the `:use` option sets an easing function. Easing
 functions define the rate at which something moves over time. The `:exp_in` easing function for example starts to move slowly to its target
 value, but accelerates its rate exponentially.
 
@@ -155,4 +152,38 @@ end)
 
 ## Architecture
 
+Vizi's `CanvasView` allows you to quickly draw something and animate its parameters without writing lots of boilerplate code, but it
+lacks support for events and offers no abstractions for managing complexity as soon as visualizations start to be more complex.
+So let's dive into Vizi's architecture a bit more and see how a complete Vizi application is set up.
+
+
+### Views
+
+Vizi provides the `Vizi.View` behaviour for creating your own view. In fact, `Vizi.CanvasView` is just a simple implementation of
+the `Vizi.View` behaviour. `Vizi.View` is implemented as a thin layer on top of Elixir's `GenServer` and is mainly responsible for handling
+messages sent from other Elixir processes, dispatching events and managing redraws.
+
+The callbacks needed for implementing the behaviour mostly matches the callbacks needed to write a `GenServer`, so if you already feel
+comfortable writing a `GenServer` implementation, you'll have no problems writing your own view.
+
+
+### Events
+
+A view receives input events like keyboard input and mouse movement via its `handle_event/3` callback function. It's also possible to send
+custom events to a view from other processes. Since a view allows handling generic messages via its `handle_call/4`, `handle_cast/3` and
+`handle_info/3` callback functions, just like a `GenServer`, custom events are mainly used for notifying and/or updating nodes,
+which will be covered in the next section.
+
+
+### Nodes
+
+A node is responsible 
+
+### Canvas
+
+
+### Animation
+
+
+## Implementation
 
