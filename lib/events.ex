@@ -8,7 +8,7 @@ defmodule Vizi.Events do
 
   defmodule Configure do
     @moduledoc false
-    defstruct [:type, :x, :y, :width, :height]
+    defstruct [:type, :xform, :x, :y, :width, :height]
   end
 
   defmodule Expose do

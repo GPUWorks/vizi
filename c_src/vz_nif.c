@@ -371,6 +371,7 @@ VZ_ASYNC_DECL(
   vz_setup_node,
   {
     float *xform;
+    float *parent_xform;
     double x;
     double y;
     double width;
@@ -383,9 +384,10 @@ VZ_ASYNC_DECL(
     double alpha;
   },
   {
-    nvgTranslate(ctx, args->x, args->y);
+    nvgReset(ctx);
+    nvgTransform(ctx, args->parent_xform[0], args->parent_xform[1], args->parent_xform[2], args->parent_xform[3], args->parent_xform[4], args->parent_xform[5]);
     nvgScale(ctx, args->scale_x, args->scale_y);
-    nvgTranslate(ctx, args->width / 2.f, args->height / 2.f);
+    nvgTranslate(ctx, args->x + args->width / 2.f, args->y + args->height / 2.f);
     nvgRotate(ctx, args->rotate);
     nvgTranslate(ctx, -args->width / 2.f, -args->height / 2.f);
     nvgSkewX(ctx, args->skew_x);
@@ -395,12 +397,13 @@ VZ_ASYNC_DECL(
     nvgScissor(ctx, 0.f, 0.f, args->width, args->height);
   },
   {
-    if(!(argc == 2 &&
-        enif_is_map(env, argv[1]))) {
+    if(!(argc == 3 &&
+        enif_get_resource(env, argv[1], vz_matrix_res, (void**)&args->parent_xform) &&
+        enif_is_map(env, argv[2]))) {
       return BADARG;
     }
 
-    ERL_NIF_TERM map = argv[1];
+    ERL_NIF_TERM map = argv[2];
     ERL_NIF_TERM value;
 
     enif_get_map_value(env, map, ATOM_X, &value);
@@ -886,7 +889,7 @@ VZ_ASYNC_DECL(
 );
 
 static ERL_NIF_TERM vz_transform_identity(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) {
-    float *matrix;
+  float *matrix;
 
   if(argc != 0) goto err;
 
@@ -897,7 +900,7 @@ static ERL_NIF_TERM vz_transform_identity(ErlNifEnv* env, int argc, const ERL_NI
 
   err:
   return BADARG;
-  }
+}
 
 
 static ERL_NIF_TERM vz_transform_translate(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) {
@@ -2330,7 +2333,7 @@ static ErlNifFunc nif_funcs[] =
     {"ready", 1, vz_ready},
     {"redraw", 1, vz_redraw},
     {"force_send_events", 1, vz_force_send_events},
-    {"setup_node", 2, vz_setup_node},
+    {"setup_node", 3, vz_setup_node},
     {"global_composite_operation", 2, vz_global_composite_operation},
     {"global_composite_blend_func", 3, vz_global_composite_blend_func},
     {"global_composite_blend_func_separate", 5, vz_global_composite_blend_func_separate},

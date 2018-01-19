@@ -32,6 +32,7 @@ defmodule TestC1 do
     |> rect(0, 0, width, height)
     |> fill_paint(paint)
     |> fill()
+    |> rotate(1)
 
 #    Vizi.View.send_event(:update, nil)
 
@@ -164,7 +165,7 @@ defmodule T do
   end
 
   def init(_args, _width, _height) do
-    root = TestC1.create(x: 100, y: 100, width: 500, height: 300, children: for n <- 0..200 do
+    root = TestC1.create(x: 100, y: 100, width: 500, height: 300, children: for n <- -100..400 do
       TestC2.create(x: n, y: n, width: 100, height: 100, alpha: 0.05)
     end)
     {:ok, root, nil}

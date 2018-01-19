@@ -4,6 +4,8 @@
 #include "vz_events.h"
 #include "vz_view_thread.h"
 
+#include "nanovg.h"
+
 #include <string.h>
 
 
@@ -113,11 +115,13 @@ static ERL_NIF_TERM vz_make_button_event_struct(ErlNifEnv* env, const PuglEventB
   return map;
 }
 
-static ERL_NIF_TERM vz_make_configure_event_struct(ErlNifEnv* env, const PuglEventConfigure* event) {
+static ERL_NIF_TERM vz_make_configure_event_struct(ErlNifEnv* env, const float *xform, const PuglEventConfigure* event) {
   ERL_NIF_TERM map = enif_make_new_map(env);
+  float *xform_res = vz_alloc_matrix_copy(xform);
 
   enif_make_map_put(env, map, ATOM__STRUCT__, ATOM_CONFIGURE_EVENT, &map);
   enif_make_map_put(env, map, ATOM_TYPE, ATOM_CONFIGURE_EVENT_TYPE, &map);
+  enif_make_map_put(env, map, ATOM_XFORM, vz_make_resource(env, xform_res), &map);
   enif_make_map_put(env, map, ATOM_X, enif_make_double(env, event->x), &map);
   enif_make_map_put(env, map, ATOM_Y, enif_make_double(env, event->y), &map);
   enif_make_map_put(env, map, ATOM_WIDTH, enif_make_double(env, event->width), &map);
@@ -248,8 +252,6 @@ static ERL_NIF_TERM vz_make_event_struct(ErlNifEnv* env, const PuglEvent* event,
     case PUGL_BUTTON_PRESS:
     case PUGL_BUTTON_RELEASE:
       return vz_make_button_event_struct(env, &event->button, width_factor, height_factor);
-    case PUGL_CONFIGURE:
-      return vz_make_configure_event_struct(env, &event->configure);
     case PUGL_EXPOSE:
       return vz_make_expose_event_struct(env, &event->expose);
    case PUGL_CLOSE:
@@ -283,7 +285,8 @@ void vz_on_event(PuglView* view, const PuglEvent* event) {
         vz_view->height = (int)configure->height;
         vz_view->width_factor = configure->width / (double)vz_view->init_width;
         vz_view->height_factor = configure->height / (double)vz_view->init_height;
-        ERL_NIF_TERM configure_struct = vz_make_configure_event_struct(vz_view->ev_env, configure);
+        nvgTransformScale(vz_view->xform, vz_view->width_factor, vz_view->height_factor);
+        ERL_NIF_TERM configure_struct = vz_make_configure_event_struct(vz_view->ev_env, vz_view->xform, configure);
         VZev_array_push(vz_view->ev_array, configure_struct);
         vz_update(vz_view);
         break;

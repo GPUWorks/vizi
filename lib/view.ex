@@ -7,6 +7,7 @@ defmodule Vizi.View do
             width: 0, height: 0,
             custom_events: [],
             redraw_mode: :manual,
+            identity_xform: nil,
             mod: nil, state: nil
 
   @type context :: <<>>
@@ -32,6 +33,7 @@ defmodule Vizi.View do
     root: Vizi.Node.t,
     custom_events: [%Vizi.Events.Custom{}],
     redraw_mode: redraw_mode,
+    identity_xform: Vizi.Canvas.Transform.t,
     mod: module, state: term
   }
 
@@ -197,8 +199,9 @@ defmodule Vizi.View do
     opts = Keyword.merge(@defaults, opts)
     case NIF.create_view(opts) do
       {:ok, ctx} ->
+        xform = Vizi.Canvas.Transform.identity()
         redraw_mode = Keyword.get(opts, :redraw_mode, :manual)
-        state = %Vizi.View{context: ctx, redraw_mode: redraw_mode, mod: mod}
+        state = %Vizi.View{context: ctx, redraw_mode: redraw_mode, mod: mod, identity_xform: xform}
         Process.put(:vz_frame_rate, opts[:frame_rate])
         callback_init(mod, args, opts[:width], opts[:height], state)
       {:error, e} ->
@@ -231,7 +234,7 @@ defmodule Vizi.View do
 
   @doc false
   def handle_info({:vz_update, _ts}, state) do
-    root = Vizi.Node.update(state.root, state.context)
+    root = Vizi.Node.update(state.root, state.identity_xform, state.context)
     Vizi.NIF.ready(state.context)
     {:noreply, %{state|root: root}}
   end
@@ -362,6 +365,6 @@ defmodule Vizi.View do
   end
 
   defp handle_configure(ev, state) do
-    %{state|width: ev.width, height: ev.height}
+    %{state|identity_xform: ev.xform, width: ev.width, height: ev.height}
   end
 end

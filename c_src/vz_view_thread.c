@@ -83,7 +83,6 @@ static inline void vz_begin_frame(VZview *vz_view) {
   glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT|GL_STENCIL_BUFFER_BIT);
 
   nvgBeginFrame(vz_view->ctx, vz_view->width, vz_view->height, vz_view->pixel_ratio);
-  nvgScale(vz_view->ctx, vz_view->width_factor, vz_view->height_factor);
 }
 
 static inline void vz_end_frame(VZview *vz_view) {

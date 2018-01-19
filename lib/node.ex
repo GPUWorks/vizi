@@ -267,24 +267,20 @@ defmodule Vizi.Node do
   # Internals
 
   @doc false
-  def update(%Node{mod: mod} = node, ctx) do
-    NIF.save(ctx)
-
+  def update(%Node{mod: mod} = node, parent_xform, ctx) do
     node = node
     |> maybe_init(ctx)
     |> maybe_execute_tasks(ctx)
     |> maybe_animate()
 
-    NIF.setup_node(ctx, node)
+    NIF.setup_node(ctx, parent_xform, node)
     mod.draw(node.params, node.width, node.height, ctx)
-    children = update(node.children, ctx)
-
-    NIF.restore(ctx)
+    children = update(node.children, node.xform, ctx)
 
     %Node{node|children: children}
   end
-  def update(els, ctx) when is_list(els) do
-    Enum.map(els, &update(&1, ctx))
+  def update(els, parent_xform, ctx) when is_list(els) do
+    Enum.map(els, &update(&1, parent_xform, ctx))
   end
 
   defp maybe_init(%Node{initialized: false} = node, ctx) do
