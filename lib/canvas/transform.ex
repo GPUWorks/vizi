@@ -12,10 +12,7 @@ defmodule Vizi.Canvas.Transform do
   @doc """
   Sets the transform to the identity matrix.
   """
-  def identity(view) do
-    NIF.transform_identity(view)
-    NIF.get_reply
-  end
+  defdelegate identity(), to: NIF, as: :transform_identity
 
   @doc """
   Sets the transform to a translation matrix.

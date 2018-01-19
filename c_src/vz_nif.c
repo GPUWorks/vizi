@@ -764,7 +764,6 @@ VZ_ASYNC_DECL(
   {
     __UNUSED(args);
     nvgResetTransform(ctx);
-    nvgTransform(ctx, vz_view->xform[0], vz_view->xform[1], vz_view->xform[2], vz_view->xform[3], vz_view->xform[4], vz_view->xform[5]);
   },
   {
     // no caller block
@@ -886,22 +885,20 @@ VZ_ASYNC_DECL(
   }
 );
 
-VZ_ASYNC_DECL(
-  vz_transform_identity,
-  {
-    __EMPTY_STRUCT
-  },
-  {
-    __UNUSED(ctx);
-    __UNUSED(args);
+static ERL_NIF_TERM vz_transform_identity(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) {
     float *matrix;
-    matrix = vz_alloc_matrix_copy(vz_view->xform);
-    VZ_HANDLER_SEND(vz_make_resource(vz_view->msg_env, matrix));
-  },
-  {
-    execute = true;
+
+  if(argc != 0) goto err;
+
+  matrix = vz_alloc_matrix();
+  nvgTransformIdentity(matrix);
+
+  return vz_make_resource(env, matrix);
+
+  err:
+  return BADARG;
   }
-);
+
 
 static ERL_NIF_TERM vz_transform_translate(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) {
   float *matrix;
@@ -2360,7 +2357,7 @@ static ErlNifFunc nif_funcs[] =
     {"skew_y", 2, vz_skew_y},
     {"scale", 3, vz_scale},
     {"current_transform", 1, vz_current_transform},
-    {"transform_identity", 1, vz_transform_identity},
+    {"transform_identity", 0, vz_transform_identity},
     {"transform_translate", 2, vz_transform_translate},
     {"transform_scale", 2, vz_transform_scale},
     {"transform_rotate", 1, vz_transform_rotate},
