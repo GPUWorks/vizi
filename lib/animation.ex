@@ -172,7 +172,7 @@ defmodule Vizi.Animation do
           do_step(%Vizi.Animation{anim|values: pingpong_values(values), step: 0})
       end
     else
-      values = for {key, {from, delta}} <- values, into: %{} do
+      values = for {key, {from, delta}} <- values do
         {key, fun.(from, delta, length, step)}
       end
       {values, %Vizi.Animation{anim| step: step}}
