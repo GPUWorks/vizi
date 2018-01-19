@@ -139,7 +139,7 @@ NVGpaint* vz_alloc_paint(NVGpaint src);
 */
 extern ErlNifResourceType *vz_matrix_res;
 float* vz_alloc_matrix();
-float* vz_alloc_matrix_copy(float *src);
+float* vz_alloc_matrix_copy(const float *src);
 
 /*
   Bitmap resource

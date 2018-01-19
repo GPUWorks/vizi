@@ -192,7 +192,7 @@ float* vz_alloc_matrix() {
   return enif_alloc_resource(vz_matrix_res, sizeof(float) * 6);
 }
 
-float* vz_alloc_matrix_copy(float *src) {
+float* vz_alloc_matrix_copy(const float *src) {
   float *dst;
 
   if((dst = enif_alloc_resource(vz_matrix_res, sizeof(float) * 6)) == NULL)
