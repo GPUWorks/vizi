@@ -141,7 +141,6 @@ VZimage* vz_alloc_image(VZview *view, int handle) {
     NVGcontext *ctx = vz_view->ctx;
     struct vz_image_dtor_args *args = (struct vz_image_dtor_args*)void_args;
     nvgDeleteImage(ctx, args->handle);
-    printf("image %d deleted!\r\n", args->handle);
   }
 
 
