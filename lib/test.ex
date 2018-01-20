@@ -115,6 +115,7 @@ defmodule TestC2 do
   end
 
   def handle_event(_node, %Events.Button{type: :button_release}) do
+    1 = 2
     :done
   end
   def handle_event(node, %Events.Custom{} = ev) do
@@ -155,19 +156,31 @@ defmodule TestC3 do
   end
 end
 
+defmodule Root do
+  use Vizi.Node
+
+  def create(opts) do
+    Vizi.Node.create(__MODULE__, %{}, opts)
+  end
+end
+
 
 defmodule T do
   @moduledoc false
   use Vizi.View
 
   def s do
-    {:ok, _pid} = Vizi.View.start_link(__MODULE__, nil, redraw_mode: :interval, frame_rate: 60)
+    {:ok, _pid} = Vizi.View.start(__MODULE__, nil, redraw_mode: :interval, frame_rate: 70)
   end
 
   def init(_args, _width, _height) do
-    root = TestC1.create(x: 100, y: 100, width: 500, height: 300, children: for n <- -100..400 do
+    n1 = TestC1.create(x: 100, y: 0, width: 500, height: 300, children: for n <- -100..400 do
       TestC2.create(x: n, y: n, width: 100, height: 100, alpha: 0.05)
     end)
+    n2 = TestC1.create(x: 100, y: 300, width: 500, height: 300, children: for n <- -100..400 do
+      TestC2.create(x: n, y: n, width: 100, height: 100, alpha: 0.05)
+    end)
+    root = Root.create(width: 800, height: 600, children: [n1, n2])
     {:ok, root, nil}
   end
 
