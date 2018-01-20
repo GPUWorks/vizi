@@ -107,6 +107,7 @@ void type##_array_push(type##_array *array, type value) {                     \
     array->size *= 2;                                                         \
     array->array = (type*)enif_alloc(array->size * sizeof(type));             \
     memcpy(array->array, a, array->end_pos * sizeof(type));                   \
+    enif_free(a);                                                             \
   }                                                                           \
   array->array[array->end_pos++] = value;                                     \
 }                                                                             \
