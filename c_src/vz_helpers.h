@@ -94,8 +94,8 @@ void type##_array_free(type##_array *array);              \
 
 #define VZ_ARRAY_DEFINE(type)                                                 \
 type##_array* type##_array_new(unsigned initial_size) {                       \
-  type##_array *array = (type##_array*)malloc(sizeof(type##_array));          \
-  array->array = (type*)malloc(initial_size * sizeof(type));                  \
+  type##_array *array = (type##_array*)enif_alloc(sizeof(type##_array));      \
+  array->array = (type*)enif_alloc(initial_size * sizeof(type));              \
   array->start_pos = 0;                                                       \
   array->end_pos = 0;                                                         \
   array->size = initial_size;                                                 \
@@ -103,8 +103,10 @@ type##_array* type##_array_new(unsigned initial_size) {                       \
 }                                                                             \
 void type##_array_push(type##_array *array, type value) {                     \
   if(array->end_pos == array->size) {                                         \
+    type *a = array->array;                                                   \
     array->size *= 2;                                                         \
-    array->array = (type*)realloc(array->array, array->size * sizeof(type));  \
+    array->array = (type*)enif_alloc(array->size * sizeof(type));             \
+    memcpy(array->array, a, array->end_pos * sizeof(type));                   \
   }                                                                           \
   array->array[array->end_pos++] = value;                                     \
 }                                                                             \
@@ -113,8 +115,8 @@ void type##_array_clear(type##_array *array) {                                \
   array->end_pos = 0;                                                         \
 }                                                                             \
 void type##_array_free(type##_array *array) {                                 \
-  free(array->array);                                                         \
-  free(array);                                                                \
+  enif_free(array->array);                                                    \
+  enif_free(array);                                                           \
 }                                                                             \
 
 #endif
