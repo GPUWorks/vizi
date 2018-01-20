@@ -299,6 +299,23 @@ static ERL_NIF_TERM vz_create_view(ErlNifEnv* env, int argc, const ERL_NIF_TERM 
     return BADARG;
 }
 
+static ERL_NIF_TERM vz_shutdown(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) {
+  VZview *vz_view;
+
+  if(!(argc == 1 &&
+       enif_get_resource(env, argv[0], vz_view_res, (void**)&vz_view))) {
+    return BADARG;
+  }
+
+  enif_mutex_lock(vz_view->lock);
+  vz_view->busy = false;
+  vz_view->shutdown = true;
+  enif_cond_signal(vz_view->execute_cv);
+  enif_mutex_unlock(vz_view->lock);
+
+  return ATOM_OK;
+}
+
 static ERL_NIF_TERM vz_ready(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) {
   VZview *vz_view;
 
@@ -2330,6 +2347,7 @@ static void vz_unload(ErlNifEnv* env, void* priv_data) {
 static ErlNifFunc nif_funcs[] =
 {
     {"create_view", 1, vz_create_view},
+    {"shutdown", 1, vz_shutdown},
     {"ready", 1, vz_ready},
     {"redraw", 1, vz_redraw},
     {"force_send_events", 1, vz_force_send_events},

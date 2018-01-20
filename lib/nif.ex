@@ -9,6 +9,7 @@ defmodule Vizi.NIF do
   end
 
   def create_view(_opts), do: :erlang.nif_error(:vz_nif_lib_not_loaded)
+  def shutdown(_ctx), do: :erlang.nif_error(:vz_nif_lib_not_loaded)
   def ready(_ctx), do: :erlang.nif_error(:vz_nif_lib_not_loaded)
   def redraw(_ctx), do: :erlang.nif_error(:vz_nif_lib_not_loaded)
   def force_send_events(_ctx), do: :erlang.nif_error(:vz_nif_lib_not_loaded)

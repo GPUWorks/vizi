@@ -245,7 +245,7 @@ defmodule Vizi.View do
   end
 
   def handle_info(:vz_shutdown, state) do
-    {:stop, :normal, state}
+    {:stop, {:shutdown, :vz_shutdown_event}, state}
   end
 
   def handle_info(msg, state) do
@@ -254,6 +254,12 @@ defmodule Vizi.View do
 
   @doc false
   def terminate(reason, state) do
+    case reason do
+      {:shutdown, :vz_shutdown_event} ->
+        :ok
+      _ ->
+        NIF.shutdown(state.context)
+    end
     callback_terminate(reason, state)
   end
 
