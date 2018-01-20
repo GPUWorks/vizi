@@ -177,7 +177,14 @@ which will be covered in the next section.
 
 ### Nodes
 
-A node is responsible 
+A node provides a bounded drawing area in a view, defined by its `x`, `y`, `width` and `height` attributes. In addition it can receive both input and custom events. If an input event has `x` and `y` fields, like mouse movement and button clicks, the node will only receive events whose position is within the
+bounds of the node. In addition to `x`, `y`, `width` and `height` attributes, nodes also have several other attributes like `scale`, `rotate` and `alpha`.
+
+A node is a recursive data structure as it can contain other nodes as children. Attributes set on a parent node affect all its children too, so if a parent
+node is rotated 45 degrees, all it's children are rotated likewise. When a view initiates a redraw, it starts drawing the root node, then its first child
+node and its children, etc. This means that child nodes are drawn on top of their parent and that the next sibling node is drawn on top of the previous sibling, if their bounds overlap.
+
+Vizi follows the idea that a node is only responsible for its children and that a child node should have no knowledge about its parent. If a node really needs to pass something to a node higher up in the tree, it should send a custom event that the parent node listens to.
 
 ### Canvas
 
