@@ -279,6 +279,9 @@ void vz_on_event(PuglView* view, const PuglEvent* event) {
   VZview* vz_view = (VZview*)puglGetHandle(view);
   if(event->type) {
     switch(event->type) {
+      case PUGL_EXPOSE:
+        vz_update(vz_view);
+        break;
       case PUGL_CONFIGURE: {
         const PuglEventConfigure *configure = &event->configure;
         vz_view->width = (int)configure->width;
@@ -291,9 +294,6 @@ void vz_on_event(PuglView* view, const PuglEvent* event) {
         vz_update(vz_view);
         break;
       }
-      case PUGL_EXPOSE:
-        vz_update(vz_view);
-        break;
       case PUGL_CLOSE:
         vz_view->shutdown = true;
         break;
