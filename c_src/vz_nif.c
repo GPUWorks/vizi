@@ -722,6 +722,46 @@ VZ_ASYNC_DECL(
 );
 
 VZ_ASYNC_DECL(
+  vz_draw_image,
+  {
+    double x;
+    double y;
+    double width;
+    double height;
+    double alpha;
+    int handle;
+  },
+  {
+    int img_width;
+    int img_height;
+    nvgSave(ctx);
+    nvgImageSize(ctx, args->handle, &img_width, &img_height);
+    nvgTranslate(ctx, args->x, args->y);
+    nvgScale(ctx, args->width / img_width, args->height / img_height);
+    nvgBeginPath(ctx);
+    nvgRect(ctx, 0, 0, img_width, img_height);
+    nvgFillPaint(ctx, nvgImagePattern(ctx, 0, 0, img_width, img_height, 0, args->handle, args->alpha));
+    nvgFill(ctx);
+    nvgRestore(ctx);
+  },
+  {
+    VZimage *image;
+
+    if(!(argc == 7 &&
+       enif_get_resource(env, argv[5], vz_image_res, (void**)&image))) {
+      return BADARG;
+    }
+
+    args->handle = image->handle;
+    VZ_GET_NUMBER(env, argv[1], args->x);
+    VZ_GET_NUMBER(env, argv[2], args->y);
+    VZ_GET_NUMBER(env, argv[3], args->width);
+    VZ_GET_NUMBER(env, argv[4], args->height);
+    VZ_GET_NUMBER(env, argv[6], args->alpha);
+  }
+);
+
+VZ_ASYNC_DECL(
   vz_miter_limit,
   {
     double limit;
@@ -2388,6 +2428,7 @@ static ErlNifFunc nif_funcs[] =
     {"stroke_paint", 2, vz_stroke_paint},
     {"fill_color", 2, vz_fill_color},
     {"fill_paint", 2, vz_fill_paint},
+    {"draw_image", 7, vz_draw_image},
     {"miter_limit", 2, vz_miter_limit},
     {"stroke_width", 2, vz_stroke_width},
     {"line_cap", 2, vz_line_cap},
