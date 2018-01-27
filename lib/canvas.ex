@@ -379,4 +379,14 @@ defmodule Vizi.Canvas do
   Already transparent paths will get proportionally more transparent as well.
   """
   defdelegate global_alpha(ctx, a), to: NIF
+
+  @doc """
+  Gives all transformations and styling within the supplied function its own scope.
+  """
+  def scope(ctx, fun) do
+    ctx
+    |> NIF.save()
+    |> fun.()
+    |> NIF.restore()
+  end
 end
