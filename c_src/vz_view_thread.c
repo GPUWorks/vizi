@@ -32,17 +32,21 @@ void timespec_diff(struct timespec *start, struct timespec *stop, struct timespe
 #if defined(VZ_PLATFORM_X11) || defined(VZ_PLATFORM_MACOS)
 static inline void set_next_time_point(struct timespec* ts, int frame_rate) {
   clock_gettime(CLOCK_MONOTONIC, ts);
-  long interval = 1000000000 / frame_rate;
-  unsigned long rem = (ts->tv_nsec + interval) % 1000000000;
-  if(rem < ts->tv_nsec)
+  int interval = 1000000000 / frame_rate;
+  int nsec = ts->tv_nsec + interval;
+  if(nsec > 999999999) {
     ts->tv_sec += 1;
-  ts->tv_nsec = rem;
+    ts->tv_nsec = nsec - 1000000000;
+}
+  else {
+    ts->tv_nsec = nsec;
+  }
 }
 #elif defined(VZ_PLATFORM_WINDOWS)
 static inline void set_next_time_point(ULARGE_INTEGER* ts, int frame_rate) {
 	FILETIME ft;
 	GetSystemTimeAsFileTime(&ft);
-	long interval = 10000000 / frame_rate;
+	int interval = 10000000 / frame_rate;
 	ts->LowPart = ft.dwLowDateTime;
 	ts->HighPart = ft.dwHighDateTime;
 	ts->QuadPart += interval;
