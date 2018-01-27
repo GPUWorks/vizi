@@ -1,13 +1,13 @@
-defmodule Vizi.Animation do
-  defstruct values: %{}, length: 0, step: 0, easing: nil, next: nil, mode: :once
+defmodule Vizi.Tween do
+  alias __MODULE__
+  defstruct attrs: %{}, params: %{}, length: 0, easing: nil, next: nil
 
-  @type t :: %Vizi.Animation{
-    values: values | proc_values,
+  @type t :: %Tween{
+    attrs: attrs,
+    params: params,
     length: integer,
-    step: integer,
     easing: function,
-    next: t,
-    mode: mode
+    next: t
   }
 
   @type from :: number
@@ -15,12 +15,11 @@ defmodule Vizi.Animation do
   @type length :: integer
   @type step :: integer
 
-  @type mode :: :once | :loop | :pingpong
-
-  @type key :: :x | :y | :width | :height | :alpha | :rotate | :skew_x | :skew_y | :scale_x | :scale_y | {:param, atom | [atom]}
+  @type attr_key :: :x | :y | :width | :height | :alpha | :rotate | :skew_x | :skew_y | :scale_x | :scale_y
+  @type param_key :: atom
   @type value :: number | {:add, number} | {:sub, number}
-  @type values :: %{optional(key) => value}
-  @type proc_values :: [{key, {from, delta}}]
+  @type attrs :: %{optional(attr_key) => value}
+  @type params :: %{optional(param_key) => value}
 
   @type easing :: :lin |
                   :quad_in | :quad_out | :quad_inout |
@@ -32,7 +31,7 @@ defmodule Vizi.Animation do
                   :circ_in | :circ_out | :circ_inout |
                   (from, delta, length, step -> number)
 
-  @type option :: {:in, length} | {:use, easing} | {:mode, mode}
+  @type option :: {:in, length} | {:use, easing}
   @type options :: [option]
 
   @allowed_attributes [
@@ -45,48 +44,27 @@ defmodule Vizi.Animation do
 
   # Public API
 
-  @spec tween(t | nil, values, options) :: t
-  def tween(prev \\ nil, values, opts) do
+  @spec move(Tween.t | nil, attrs, params, options) :: Tween.t
+  def move(prev \\ nil, attrs, params, opts) do
+    attrs = Map.take(attrs, @allowed_attributes)
     length = Keyword.fetch!(opts, :in)
-    mode = Keyword.get(opts, :mode, :once)
     easing = get_easing_fun(Keyword.get(opts, :use, :lin))
-    anim = %Vizi.Animation{values: values, length: length, easing: easing, mode: mode}
+    anim = %Tween{attrs: attrs, params: params, length: length, easing: easing}
     maybe_set_next(prev, anim)
   end
 
-  @spec pause(t | nil, length) :: t
+  @spec pause(Tween.t | nil, length) :: Tween.t
   def pause(prev \\ nil, length) do
-    anim = %Vizi.Animation{length: length}
+    anim = %Tween{length: length}
     maybe_set_next(prev, anim)
   end
 
-  @spec set(t | nil, values) :: t
-  def set(prev \\ nil, values) do
-    anim = %Vizi.Animation{values: values, length: 1, easing: get_easing_fun(:lin)}
+  @spec set(Tween.t | nil, attrs, params) :: Tween.t
+  def set(prev \\ nil, attrs, params) do
+    attrs = Map.take(attrs, @allowed_attributes)
+    length = if is_nil(prev), do: 0, else: 1
+    anim = %Tween{attrs: attrs, params: params, length: length, easing: get_easing_fun(:lin)}
     maybe_set_next(prev, anim)
-  end
-
-  @spec into(t, Vizi.Node.t) :: Vizi.Node.t
-  def into(anim, node) do
-    anim = set_values(anim, node)
-    %Vizi.Node{node|animations: [anim | node.animations]}
-  end
-
-  @spec remove_all(Vizi.Node.t) :: Vizi.Node.t
-  def remove_all(node) do
-    %Vizi.Node{node|animations: []}
-  end
-
-  @spec step(Vizi.Node.t) :: Vizi.Node.t
-  def step(%Vizi.Node{animations: animations} = node) do
-    Enum.reduce(animations, %Vizi.Node{node|animations: []}, fn anim, acc ->
-      case do_step(anim) do
-        :done ->
-          acc
-        {values, anim} ->
-          handle_result(acc, values, anim)
-      end
-    end)
   end
 
   @frame_rate_error_msg "can not query frame rate. perhaps this function was called outside a Vizi.View process"
@@ -121,97 +99,20 @@ defmodule Vizi.Animation do
     end
   end
 
+  defmacro __using__(_) do
+    quote do
+      import Vizi.Tween, only: [sec: 1, msec: 1, min: 1]
+      alias Vizi.Tween
+    end
+  end
+
   # Internal functions
 
-  defp set_values(%Vizi.Animation{values: values, next: next} = anim, node) do
-    values = values
-    |> Enum.map(fn
-      {key, {:add, x}} ->
-        {key, from} = map_value(key, node)
-        {key, {from, x}}
-      {key, {:sub, x}} ->
-        {key, from} = map_value(key, node)
-        {key, {from, -x}}
-      {key, to} ->
-        {key, from} = map_value(key, node)
-        {key, {from, to - from}}
-    end)
-    node = update_for_next(node, values)
-    %Vizi.Animation{anim|values: values, next: set_values(next, node)}
+  defp maybe_set_next(%Tween{next: nil} = prev, anim) do
+    %Tween{prev|next: anim}
   end
-  defp set_values(nil, _node), do: nil
-
-  defp update_for_next(node, values) do
-    Enum.reduce(values, node, fn
-      {{:param, pkey}, {from, delta}}, acc ->
-        %Vizi.Node{acc|params: put_in(acc.params, pkey, from + delta)}
-      {attr, {from, delta}}, acc ->
-        Map.put(acc, attr, from + delta)
-    end)
-  end
-
-  defp handle_result(node, values, anim) do
-    node = Enum.reduce(values, node, fn
-      {{:param, pkey}, value}, acc ->
-        %Vizi.Node{acc|params: put_in(acc.params, pkey, value)}
-      {attr, value}, acc ->
-        Map.put(acc, attr, value)
-    end)
-    %Vizi.Node{node|animations: [anim | node.animations]}
-  end
-
-  defp do_step(%Vizi.Animation{values: values, length: length, step: step, easing: fun, next: next, mode: mode} = anim) do
-    step = step + 1
-    if step > length do
-      case mode do
-        :once ->
-          do_step(next)
-        :loop ->
-          do_step(%Vizi.Animation{anim|step: 0})
-        :pingpong ->
-          do_step(%Vizi.Animation{anim|values: pingpong_values(values), step: 0})
-      end
-    else
-      values = for {key, {from, delta}} <- values do
-        {key, fun.(from, delta, length, step)}
-      end
-      {values, %Vizi.Animation{anim| step: step}}
-    end
-  end
-  defp do_step(nil), do: :done
-
-  defp pingpong_values(values) do
-    for {key, {from, delta}} <- values do
-      {key, {from + delta, -delta}}
-    end
-  end
-
-  defp map_value({:param, key}, node) do
-    pkey = List.wrap(key)
-    case get_in(node.params, pkey) do
-      nil ->
-        raise ArgumentError,
-        message: "param key '#{inspect key}' does not exist or has a value of `nil` for node\r\n#{inspect node}"
-      value ->
-        {{:param, pkey}, value}
-    end
-  end
-  defp map_value(attr, node)
-  when attr in @allowed_attributes do
-    {attr, Map.get(node, attr)}
-  end
-  defp map_value(attr, node) do
-    raise ArgumentError,
-      message: "invalid attribute '#{inspect attr}' for node\r\n#{inspect node}"
-  end
-
-  #anim(%{{:param, :test} => 5.0}, in: sec(5), use: :exp_in)
-
-  defp maybe_set_next(%Vizi.Animation{next: nil} = prev, anim) do
-    %Vizi.Animation{prev|next: anim}
-  end
-  defp maybe_set_next(%Vizi.Animation{next: next} = prev, anim) do
-    %Vizi.Animation{prev|next: maybe_set_next(next, anim)}
+  defp maybe_set_next(%Tween{next: next} = prev, anim) do
+    %Tween{prev|next: maybe_set_next(next, anim)}
   end
   defp maybe_set_next(nil, anim) do
     anim
@@ -244,7 +145,8 @@ defmodule Vizi.Animation do
   defp get_easing_fun(badarg), do: raise ArgumentError, message: "invalid easing function: #{inspect badarg}"
 
 
-  defp easing_lin(from, delta, length, step) do
+  @doc false
+  def easing_lin(from, delta, length, step) do
     delta * (step / length) + from
   end
 

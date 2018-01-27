@@ -12,8 +12,8 @@ defmodule Vizi.CanvasView do
     Vizi.View.cast(server, {:draw, params, fun})
   end
 
-  def animate(server, fun) when is_function(fun, 0) do
-    Vizi.View.cast(server, {:animate, fun})
+  def animate(server, mode \\ :once, fun) when is_function(fun, 0) do
+    Vizi.View.cast(server, {:animate, mode, fun})
   end
 
   def remove_animations(server) do
@@ -26,10 +26,11 @@ defmodule Vizi.CanvasView do
   defmodule RootNode do
     use Vizi.Node
 
-    def draw(%{fun: nil}, _width, _height, _ctx) do
+    def draw(%{__draw_fun__: nil}, _width, _height, _ctx) do
       :ok
     end
-    def draw(%{fun: fun, params: params}, width, height, ctx) do
+    def draw(params, width, height, ctx) do
+      {fun, params} = Map.pop(params, :__draw_fun__)
       fun.(params, width, height, ctx)
     end
   end
@@ -38,43 +39,26 @@ defmodule Vizi.CanvasView do
   # Vizi.View callbacks
 
   def init(_args, width, height) do
-    {:ok, Vizi.Node.create(RootNode, %{fun: nil, params: nil}, x: 0, y: 0, width: width, height: height), nil}
+    {:ok, Vizi.Node.create(RootNode, %{__draw_fun__: nil}, x: 0, y: 0, width: width, height: height), nil}
   end
 
   def handle_cast({:draw, params, fun}, root, state) do
-    root = root
-    |> Vizi.Animation.remove_all()
-    |> Vizi.Node.put_params(%{fun: fun, params: params})
+    root = Vizi.Node.remove_animations(root)
 
-    {:noreply, root, state}
+    {:noreply, %Vizi.Node{root|params: Map.put(params, :__draw_fun__, fun)}, state}
   end
 
-  def handle_cast({:animate, fun}, root, state) do
-    anim = case fun.() do
-      %Vizi.Animation{} = anim ->
-        anim
+  def handle_cast({:animate, mode, fun}, root, state) do
+    root = case fun.() do
+      %Vizi.Tween{} = tween ->
+        Vizi.Node.animate(root, tween, mode: mode)
       _bad_return ->
-        raise "bad return value from #{inspect fun}, expected an animation"
+        raise "bad return from #{inspect fun}, expected a tween."
     end
-    root = anim
-    |> map_params()
-    |> Vizi.Animation.into(root)
-
     {:noreply, root, state}
   end
 
   def handle_cast(:remove_animations, root, state) do
-    {:noreply, Vizi.Animation.remove_all(root), state}
-  end
-
-
-  # Internal functions
-
-  defp map_params(nil), do: nil
-  defp map_params(anim) do
-    mapped_values = for {key, value} <- anim.values, into: %{} do
-      {{:param, [:params, key]}, value}
-    end
-    %Vizi.Animation{anim|values: mapped_values, next: map_params(anim.next)}
+    {:noreply, Vizi.Node.remove_animations(root), state}
   end
 end

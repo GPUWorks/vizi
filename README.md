@@ -91,10 +91,10 @@ functions to define the path to draw, such as `rect/5`, `rounded_rect/6` and `el
 Since looking at a big red surface is rather dull, let's add an animation to make things more interesting:
 
 ```elixir
-Vizi.CanvasView.animate(pid, fn ->
-  import Vizi.Animation
+Vizi.CanvasView.animate(pid, :pingpong, fn ->
+  use Vizi.Tween
 
-  tween(%{red: 0}, in: sec(3), mode: :pingpong, use: :quad_out)
+  Tween.move(%{}, %{red: 0}, in: sec(3), use: :quad_out)
 end)
 ```
 
@@ -103,7 +103,7 @@ Vizi uses tweening for animations which allow parameters (and attributes, which 
 animated over time.
 
 The first argument of the tween defines which parameters need to be animated and what their target value should be.
-The duration of the animation must be set with the `:in` option and expects the duration to be in frames. However, the `Vizi.Animation`
+The duration of the animation must be set with the `:in` option and expects the duration to be in frames. However, the `Vizi.Tween`
 module has a couple of handy helper functions which convert a duration in seconds, milliseconds, or minutes to frames. With the `:mode`
 option you specify the playback mode of the animation. The default mode is `:once`, meaning the animation is triggered once and when the
 target value is reached, the animation is automatically removed. In the example above we have set the mode to `:pingpong` which means
@@ -139,13 +139,13 @@ Vizi.CanvasView.draw(pid, %{size: 1, angle: 0}, fn params, width, height, ctx ->
 end)
 
 Vizi.CanvasView.animate(pid, fn ->
-  import Vizi.Animation
+  use Vizi.Tween
 
-  set(%{size: 1, angle: 0})
-  |> tween(%{size: 1.1}, in: sec(0.3), use: :sin_out)
-  |> tween(%{size: 1}, in: sec(0.3), use: :sin_out)
-  |> pause(sec(0.5))
-  |> tween(%{angle: 360}, in: sec(2), use: :cubic_inout)
+  Tween.set(%{}, %{size: 1, angle: 0})
+  |> Tween.move(%{}, %{size: 1.1}, in: sec(0.3), use: :sin_out)
+  |> Tween.move(%{}, %{size: 1}, in: sec(0.3), use: :sin_out)
+  |> Tween.pause(sec(0.5))
+  |> Tween.move(%{}, %{angle: 360}, in: sec(2), use: :cubic_inout)
 end)
 ```
 

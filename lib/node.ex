@@ -1,5 +1,5 @@
 defmodule Vizi.Node do
-  alias Vizi.{Node, Events, NIF}
+  alias Vizi.{Node, Events, NIF, Tween}
 
   defstruct tags: [],
             x: 0.0, y: 0.0,
@@ -14,7 +14,7 @@ defmodule Vizi.Node do
             tasks: [],
             xform: nil
 
-  @type t :: %Vizi.Node{
+  @type t :: %Node{
     tags: [tag],
     x: number, y: number,
     width: number, height: number,
@@ -24,7 +24,7 @@ defmodule Vizi.Node do
     rotate: number, alpha: number,
     mod: module | nil, params: params,
     initialized: boolean,
-    animations: [Vizi.Animation.t],
+    animations: [tuple],
     tasks: [task_fun],
     xform: Vizi.Canvas.Transform.t | nil
   }
@@ -57,6 +57,14 @@ defmodule Vizi.Node do
 
   @typedoc "Options used by `create/3`"
   @type options :: [option]
+
+  @type playback_mode :: :forward | :backward | :alternate | :pingpong
+  @type update_fun :: (t -> t)
+
+  @type animate_option :: {:mode, playback_mode} | {:update, update_fun} | {:loop, boolean} | {:replace, boolean}
+  @type animate_options :: [animate_option]
+
+  @compile {:inline, get_step_values: 5, get_target_values: 2, maybe_call_update_fun: 2, set_values: 5, map_values: 3, get_next: 1}
 
   @doc """
   Invoked once before receiving any events, or the `draw/4` function is called.
@@ -104,8 +112,8 @@ defmodule Vizi.Node do
 
   # Public interface
 
-  @spec create(mod :: module, params :: params, opts :: options) :: t
-  def create(mod, params, opts \\ []) do
+  @spec create(mod :: module, opts :: options) :: t
+  def create(mod, opts \\ []) do
     %Node{
       tags: Keyword.get(opts, :tags, []),
       x: Keyword.get(opts, :x, 0.0),
@@ -120,7 +128,7 @@ defmodule Vizi.Node do
       rotate: Keyword.get(opts, :rotate, 0.0),
       alpha: Keyword.get(opts, :alpha, 1.0),
       mod: mod,
-      params: params
+      params: %{}
     }
   end
 
@@ -259,6 +267,32 @@ defmodule Vizi.Node do
     end)
   end
 
+  @spec animate(t, Tween.t, animate_options) :: t
+  def animate(node, tween, opts \\ []) do
+    anim = to_anim(tween, node, opts)
+
+    tag = Keyword.get(opts, :tag)
+    replace = Keyword.get(opts, :replace, true)
+    anims = if is_nil(tag) do
+      node.animations ++ [anim]
+    else
+      ensure_uniq(node.animations, anim, tag, replace)
+    end
+
+    %Node{node|animations: anims}
+  end
+
+  @spec remove_animation(t, tag) :: t
+  def remove_animation(%Node{animations: anims} = node, tag) do
+    anims = Enum.filter(anims, fn {_, {atag, _, _, _}} -> atag != tag end)
+    %Node{node|animations: anims}
+  end
+
+  @spec remove_all_animations(t) :: t
+  def remove_all_animations(node) do
+    %Node{node|animations: []}
+  end
+
   @spec add_task(node :: t, task_fun) :: t
   def add_task(node, fun) do
     %Node{node|tasks: node.tasks ++ [fun]}
@@ -266,20 +300,22 @@ defmodule Vizi.Node do
 
   # Internals
 
+  # Update handling
+
   @doc false
-  def update(%Node{mod: mod} = node, parent_xform, ctx) do
-    node = node
+  def update(node, parent_xform, ctx) when is_map(node) do
+    %Node{width: width, height: height, params: params, mod: mod, children: children, xform: xform} = node = node
     |> maybe_init(ctx)
     |> maybe_execute_tasks(ctx)
-    |> maybe_animate()
+    |> step_animations()
 
     NIF.setup_node(ctx, parent_xform, node)
-    mod.draw(node.params, node.width, node.height, ctx)
-    children = update(node.children, node.xform, ctx)
+    mod.draw(params, width, height, ctx)
+    children = update(children, xform, ctx)
 
     %Node{node|children: children}
   end
-  def update(els, parent_xform, ctx) when is_list(els) do
+  def update(els, parent_xform, ctx) do
     Enum.map(els, &update(&1, parent_xform, ctx))
   end
 
@@ -308,12 +344,7 @@ defmodule Vizi.Node do
     %Node{node|params: params, tasks: []}
   end
 
-  defp maybe_animate(%Node{animations: []} = node) do
-    node
-  end
-  defp maybe_animate(node) do
-    Vizi.Animation.step(node)
-  end
+  # Event handling
 
   @doc false
   def handle_events(%Node{} = node, events, ctx) do
@@ -362,5 +393,254 @@ defmodule Vizi.Node do
 
   defp touches?(%Node{width: width, height: height}, x, y) do
     x >= 0 and x <= width and y >= 0 and y <= height
+  end
+
+  # Animations
+
+  @doc false
+  def step_animations(%Node{animations: []} = node) do
+    node
+  end
+  def step_animations(%Node{animations: anims} = node) do
+    case anims do
+      [anim] ->
+        case step_anim(anim) do
+          :done ->
+            %Node{node|animations: []}
+          {attrs, params, anim} ->
+            set_values(node, attrs, params, anim, [])
+        end
+      _anims ->
+        Enum.reduce(anims, %Node{node|animations: []}, fn anim, acc ->
+          case step_anim(anim) do
+            :done ->
+              acc
+            {attrs, params, anim} ->
+              set_values(acc, attrs, params, anim, acc.animations)
+            end
+        end)
+      end
+  end
+
+  defp step_anim({{step, {attrs, params, dir, length, fun} = props}, aprops}) do
+    if step == length do
+      a = get_target_values(attrs, dir)
+      p = get_target_values(params, dir)
+      {anim, aprops} = get_next(aprops)
+      {a, p, {anim, aprops}}
+    else
+      a = get_step_values(attrs, length, step, fun, dir)
+      p = get_step_values(params, length, step, fun, dir)
+      {a, p, {{step + 1, props}, aprops}}
+    end
+  end
+  defp step_anim({nil, {_tag, nil, _updater, _rest}}), do: :done
+  defp step_anim({nil, aprops}) do
+    {anim, aprops} = aprops
+    |> put_elem(3, elem(aprops, 1))
+    |> get_next()
+    step_anim({anim, aprops})
+  end
+
+  defp get_next(aprops) do
+    case aprops do
+      {_, _, _, [anim | rest]} ->
+        {anim, put_elem(aprops, 3, rest)}
+      {_, _, _, []} ->
+        {nil, aprops}
+    end
+  end
+
+  defp get_step_values(values, length, step, fun, dir) do
+    if values == [] do
+      %{}
+    else
+      step = if dir == :backward, do: length - step, else: step
+      for {key, from, delta} <- values, into: %{}, do: {key, fun.(from, delta, length, step)}
+    end
+  end
+
+  defp get_target_values(values, dir) do
+    if values == [] do
+      %{}
+    else
+      if dir == :backward do
+        for {key, from, _delta} <- values, into: %{}, do: {key, from}
+      else
+        for {key, from, delta} <- values, into: %{}, do: {key, from + delta}
+      end
+    end
+  end
+
+  defp set_values(node, attrs, params, anim, anims) do
+    node = if attrs == %{}, do: node, else: Map.merge(node, attrs)
+    params = if params == %{}, do: node.params, else: Map.merge(node.params, params)
+    node = %Node{node|params: params, animations: [anim | anims]}
+    maybe_call_update_fun(node, anim)
+  end
+
+  defp maybe_call_update_fun(node, anim) do
+    case anim do
+      {_, {_, _, nil, _}} ->
+        node
+      {_, {_, _, fun, _}} ->
+        fun.(node)
+    end
+  end
+
+  defp to_anim(tween, node, opts) do
+    [anim | rest] = build_anim(tween, node)
+    |> set_mode(Keyword.get(opts, :mode, :forward))
+
+    tag = Keyword.get(opts, :tag)
+    loop = if Keyword.get(opts, :loop), do: [anim | rest]
+    updater = Keyword.get(opts, :updater)
+
+    {anim, {tag, loop, updater, rest}}
+  end
+
+  defp build_anim(%Tween{attrs: attrs, params: params, length: length, easing: easing, next: next}, node) do
+    attrs  = map_values(attrs, node, length)
+    params = map_values(params, node.params, length)
+    node   = update_for_next(node, attrs, params)
+    length = if length == 0, do: 1, else: length
+    [{1, {attrs, params, :forward, length, easing}} | build_anim(next, node)]
+  end
+  defp build_anim(nil, _node), do: []
+
+  defp map_values(map, values, 0) do
+    Enum.map(map, fn
+      {key, {:add, x}} ->
+        {key, Map.get(values, key, 0) + x, 0}
+      {key, {:sub, x}} ->
+        {key, Map.get(values, key, 0) - x, 0}
+      {key, to} ->
+        {key, to, 0}
+    end)
+  end
+  defp map_values(map, values, _length) do
+    Enum.map(map, fn
+      {key, {:add, x}} ->
+        {key, Map.get(values, key, 0), x}
+      {key, {:sub, x}} ->
+        {key, Map.get(values, key, 0), -x}
+      {key, to} ->
+        from = Map.get(values, key, 0)
+        {key, from, to - from}
+    end)
+  end
+
+  defp update_for_next(node, attrs, params) do
+    node = Enum.reduce(attrs, node, fn
+      {key, from, delta}, acc ->
+        Map.put(acc, key, from + delta)
+    end)
+    params = Enum.reduce(params, node.params, fn
+      {key, from, delta}, acc ->
+        Map.put(acc, key, from + delta)
+    end)
+    %Node{node|params: params}
+  end
+
+  defp set_mode(anim, mode) do
+    case mode do
+      :forward ->
+        set_initial_values(anim)
+      :backward ->
+        set_anim_backward(anim)
+      :pingpong ->
+        set_anim_pingpong(anim)
+      :alternate ->
+        set_anim_alternate(anim)
+    end
+  end
+
+  defp set_anim_backward(anim) do
+    anim
+    |> backward()
+    |> set_initial_values()
+  end
+
+  defp set_anim_pingpong(anim) do
+    anim ++ backward(anim)
+  end
+
+  defp set_anim_alternate(anim) do
+    anim ++ reverse(anim, [])
+  end
+
+  defp backward(anim) do
+    for {step, props} <- Enum.reverse(anim) do
+      {step, put_elem(props, 2, :backward)}
+    end
+  end
+
+  defp reverse([{step, {attrs, params, dir, length, fun}} | rest], acc) do
+    reverse(rest, [{step, {swap_values(attrs), swap_values(params), dir, length, fun}} | acc])
+  end
+  defp reverse([], acc) do
+    acc
+  end
+
+  defp swap_values(values) do
+    for {key, from, delta} <- values do
+      {key, from + delta, -delta}
+    end
+  end
+
+  defp set_initial_values(anim) do
+    {attrs, params} = collect_initial_values(anim, [], [])
+    [{1, {attrs, params, :forward, 1, &Vizi.Tween.easing_lin/4}} | anim]
+  end
+
+  defp collect_initial_values([{_, {attrs, params, dir, _, _}} | rest], a_acc, p_acc) do
+    a_acc = extract_initial_values(a_acc, attrs, dir)
+    p_acc = extract_initial_values(p_acc, params, dir)
+    collect_initial_values(rest, a_acc, p_acc)
+  end
+  defp collect_initial_values([], a_acc, p_acc) do
+    {a_acc, p_acc}
+  end
+
+  defp extract_initial_values(acc, values, :forward) do
+    Enum.reduce(values, acc, fn {key, from, _delta}, acc ->
+      put_new_value(acc, key, from)
+    end)
+  end
+  defp extract_initial_values(acc, values, :backward) do
+    Enum.reduce(values, acc, fn {key, from, delta}, acc ->
+      put_new_value(acc, key, from + delta)
+    end)
+  end
+
+  defp put_new_value(list, key, value) do
+    if List.keymember?(list, key, 0) do
+      list
+    else
+      [{key, value, 0} | list]
+    end
+  end
+
+  defp ensure_uniq(anims, anim, tag, replace) do
+    {flag, anims} = Enum.reduce(anims, {replace, []}, fn {_, {atag, _, _, _}} = a, {flag, acc} ->
+      cond do
+        flag and replace and atag == tag ->
+          {!flag, [anim | acc]}
+        !(flag or replace) and atag == tag ->
+          {!flag, [a | acc]}
+        true ->
+          {flag, [a | acc]}
+      end
+    end)
+
+    cond do
+      replace and flag ->
+        [anim | anims]
+      !(replace or flag) ->
+        [anim | anims]
+      true ->
+        anims
+    end
+    |> Enum.reverse()
   end
 end

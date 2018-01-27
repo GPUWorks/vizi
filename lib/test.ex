@@ -6,7 +6,19 @@ defmodule TestC1 do
   use Vizi.Canvas
 
   def create(opts) do
-    Vizi.Node.create(__MODULE__, %{img: nil, bm: nil, cnt: 1}, opts)
+    use Vizi.Tween
+    tween = Tween.move %{}, %{angle: 359}, in: sec(6)
+
+    __MODULE__
+    |> Vizi.Node.create(opts)
+    |> Vizi.Node.put_param(:cnt, 1)
+    |> Vizi.Node.animate(tween, loop: true, updater: fn node ->
+      angle = node.params.angle
+      children = for n <- node.children do
+        Vizi.Node.put_param(n, :angle, angle + n.x)
+      end
+      %{node|children: children}
+    end)
   end
 
   def init(node, ctx) do
@@ -15,9 +27,10 @@ defmodule TestC1 do
       Bitmap.put(bm, n, rem(n, 256), 255 - rem(n, 256), 0, 255)
     end)
     img = Image.from_bitmap(ctx, bm)
-    {:ok, Vizi.Node.update_params!(node,
-    img: fn _ -> img end,
-    bm: fn _ -> bm end)}
+    {:ok, Vizi.Node.put_params(node, %{
+      img: img,
+      bm: bm
+    })}
   end
 
   @tau 6.28318530718
@@ -44,7 +57,7 @@ defmodule TestC1 do
   end
 
   def handle_event(node, %Events.Button{type: :button_release} = ev) do
-    import Vizi.Animation
+    use Vizi.Tween
 
     node = Vizi.Node.add_task(node, fn params, _width, _height, ctx ->
       bm = Bitmap.create(ctx, 500, 300)
@@ -59,17 +72,18 @@ defmodule TestC1 do
     end)
 
 
-    t = if node.x < 200 do
-      tween(%{x: 300}, in: msec(1000), use: :sin_inout)
-      |> pause(60)
-      |> set(%{rotate: 1})
-      |> tween(%{y: 300}, in: sec(4), use: :quart_inout)
-    else
-      tween(%{x: 100}, in: min(0.5), use: :sin_inout)
-      |> pause(60)
-      |> tween(%{y: 100}, in: sec(2), use: :exp_in, mode: :pingpong)
-    end
-    {:done, into(t, node)}
+    t = #if node.x < 200 do
+      Tween.set(%{x: 100, y: 0, rotate: 0}, %{})
+      |> Tween.move(%{x: 300}, %{}, in: msec(10000), use: :sin_inout)
+      |> Tween.pause(60)
+      |> Tween.set(%{rotate: 1}, %{})
+      |> Tween.move(%{y: 300}, %{}, in: sec(4), use: :quart_out)
+    #else
+    #  Tween.move(%{x: 100}, %{}, in: min(0.5), use: :sin_inout)
+    #  |> Tween.pause(60)
+    #  |> Tween.move(%{y: 100}, %{}, in: sec(2), use: :exp_in)
+    #end
+    {:done, Vizi.Node.animate(node, t, mode: :alternate, loop: false, tag: :test, replace: true)}
   end
 
   def handle_event(node, %Events.Motion{} = ev) do
@@ -94,9 +108,9 @@ defmodule TestC2 do
   use Vizi.Canvas
 
   def create(opts) do
-    import Vizi.Animation
-    tween(%{{:param, :angle} => 359}, in: sec(6), mode: :loop)
-    |> into(Vizi.Node.create(__MODULE__, %{angle: 0, img: nil}, opts))
+    __MODULE__
+    |> Vizi.Node.create(opts)
+    |> Vizi.Node.put_params(%{angle: 0, img: nil})
   end
 
   def draw(params, width, height, ctx) do
@@ -115,7 +129,6 @@ defmodule TestC2 do
   end
 
   def handle_event(_node, %Events.Button{type: :button_release}) do
-    1 = 2
     :done
   end
   def handle_event(node, %Events.Custom{} = ev) do
@@ -134,7 +147,7 @@ defmodule TestC3 do
   use Vizi.Canvas
 
   def create(opts) do
-    Vizi.Node.create(__MODULE__, %{}, opts)
+    Vizi.Node.create(__MODULE__, opts)
   end
 
   def init(node, ctx) do
@@ -160,7 +173,7 @@ defmodule Root do
   use Vizi.Node
 
   def create(opts) do
-    Vizi.Node.create(__MODULE__, %{}, opts)
+    Vizi.Node.create(__MODULE__, opts)
   end
 end
 
@@ -170,7 +183,7 @@ defmodule T do
   use Vizi.View
 
   def s do
-    {:ok, _pid} = Vizi.View.start(__MODULE__, nil, redraw_mode: :interval, frame_rate: 70)
+    {:ok, _pid} = Vizi.View.start(__MODULE__, nil, redraw_mode: :interval, spawn_opt: [priority: :high])
   end
 
   def init(_args, _width, _height) do
@@ -180,20 +193,77 @@ defmodule T do
     n2 = TestC1.create(x: 100, y: 300, width: 500, height: 300, children: for n <- -100..400 do
       TestC2.create(x: n, y: n, width: 100, height: 100, alpha: 0.05)
     end)
-    root = Root.create(width: 800, height: 600, children: [n1, n2])
+    root = Root.create(width: 800, height: 600, children: [n1])
     {:ok, root, nil}
   end
 
 
   def bm_erl do
-    n = %Vizi.Node{}
-    t = Vizi.Animation.tween(%{x: 100}, in: 10_000_000, use: :quad_inout)
-    n = Vizi.Animation.into(t, n)
+    n = %Vizi.Node{params: %{test1: 0, test2: -100}}
+    t = Vizi.Tween.move(%{x: 100, y: 200}, %{test1: 100, test2: 0}, in: 10_000_000, use: :sin_in)
+    n = Vizi.Node.animate(n, t)
+
     ts1 = :os.timestamp()
     Enum.reduce(1..10_000_000, n, fn _x, acc ->
-      Vizi.Animation.step(acc)
+      Vizi.Node.step_animations(acc)
     end)
     ts2 = :os.timestamp()
-    :timer.now_diff(ts2, ts1) / 1000
+    IO.puts "step: #{:timer.now_diff(ts2, ts1) / 1000}"
+  end
+end
+
+defmodule BM do
+  use Vizi.View
+
+  defmodule Node do
+    use Vizi.Node
+    use Vizi.Canvas
+
+
+    def create(opts) do
+      Vizi.Node.create(__MODULE__, opts)
+    end
+
+    def init(node, ctx) do
+      {:ok, Vizi.Node.put_param(node, :img, Image.create(ctx, "/home/zambal/Pictures/cubes/20170526_172329.jpg"))}
+    end
+
+    def draw(params, width, height, ctx) do
+
+      ctx
+      |> global_composite_operation(:destination_atop)
+      |> draw_image(0, 50, 200, 200, params.img, 0.5)
+      |> draw_image(100, 150, 200, 200, params.img, 0.5)
+
+      |> global_composite_operation(:destination_over)
+      |> draw_image(350, 50, 200, 200, params.img, 0.5)
+      |> draw_image(450, 150, 200, 200, params.img, 0.5)
+    end
+      @temp """
+    def draw(params, width, height, ctx) do
+      for n <- 0..499 do
+        ctx
+        |> fill_color(rgba 255, 0, 0, 110)
+        |> translate(n, n)
+        |> begin_path()
+        |> move_to(75, 40)
+        |> bezier_to(75, 37, 70, 25, 50, 25)
+        |> bezier_to(20, 25, 20, 62.5, 20, 62.5)
+        |> bezier_to(20, 80, 40, 102, 75, 120)
+        |> bezier_to(110, 102, 130, 80, 130, 62.5)
+        |> bezier_to(130, 62.5, 130, 25, 100, 25)
+        |> bezier_to(85, 25, 75, 37, 75, 40)
+        |> fill()
+      end
+    end
+    """
+  end
+
+  def start do
+    Vizi.View.start(__MODULE__, nil, width: 650, height: 500, redraw_mode: :interval)
+  end
+
+  def init(_args, _width, _height) do
+    {:ok, Node.create(x: 0, y: 0, width: 650, height: 500), nil}
   end
 end
