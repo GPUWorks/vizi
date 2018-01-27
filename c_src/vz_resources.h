@@ -11,6 +11,7 @@
 #include <time.h>
 
 #define VZ_MAX_STRING_LENGTH 255
+#define VZ_VSYNC -1
 
 enum VZredraw_mode {
   VZ_INTERVAL,
@@ -64,7 +65,7 @@ struct VZview {
   double height_factor;
   enum VZredraw_mode redraw_mode;
   int frame_rate;
-  struct timespec time;
+  bool vsync;
   double pixel_ratio;
   NVGcolor bg;
   float xform[6];

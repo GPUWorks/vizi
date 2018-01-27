@@ -12,6 +12,7 @@ defmodule Vizi.NIF do
   def shutdown(_ctx), do: :erlang.nif_error(:vz_nif_lib_not_loaded)
   def ready(_ctx), do: :erlang.nif_error(:vz_nif_lib_not_loaded)
   def redraw(_ctx), do: :erlang.nif_error(:vz_nif_lib_not_loaded)
+  def get_frame_rate(_ctx), do: :erlang.nif_error(:vz_nif_lib_not_loaded)
   def force_send_events(_ctx), do: :erlang.nif_error(:vz_nif_lib_not_loaded)
   def setup_node(_node, _parent_xform, _ctx), do: :erlang.nif_error(:vz_nif_lib_not_loaded)
   def global_composite_operation(_ctx, _operation), do: :erlang.nif_error(:vz_nif_lib_not_loaded)

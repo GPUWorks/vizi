@@ -158,7 +158,6 @@ void* vz_view_thread(void *p) {
 #endif
 
   enif_mutex_lock(vz_view->lock);
-  set_next_time_point(&ts, vz_view->frame_rate);
 
   view = puglInit(NULL, NULL);
   puglSetHandle(view, vz_view);
@@ -178,12 +177,22 @@ void* vz_view_thread(void *p) {
 
 
   if(glewInit() ||
-    !(vz_view->ctx = nvgCreateGL2(NVG_ANTIALIAS | NVG_STENCIL_STROKES))) {
+    !(vz_view->ctx = nvgCreateGL2(NVG_DEBUG | NVG_ANTIALIAS | NVG_STENCIL_STROKES))) {
     goto shutdown;
   }
+  if(vz_view->vsync) {
+    puglSetSwapInterval(view, 1);
+    vz_view->frame_rate = puglGetSwapInterval(view);
+  }
+  else
+    puglSetSwapInterval(view, 0);
+
   puglLeaveContext(view, false);
   puglShowWindow(view);
   vz_view->view = view;
+  if(!vz_view->vsync)
+    set_next_time_point(&ts, vz_view->frame_rate);
+
   enif_send(NULL, &vz_view->view_pid, NULL, ATOM_INITIALIZED);
 
   while(!vz_view->shutdown) {
@@ -211,7 +220,7 @@ void* vz_view_thread(void *p) {
     }
 #endif
     vz_release_managed_resources(vz_view);
-    vz_wait_for_frame(vz_view, view, &ts);
+    if(!vz_view->vsync) vz_wait_for_frame(vz_view, view, &ts);
   }
 shutdown:
   if(vz_view->ctx)

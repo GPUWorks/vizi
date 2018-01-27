@@ -214,6 +214,9 @@ static int vz_handle_create_view_opts(ErlNifEnv *env, ERL_NIF_TERM opts, VZview*
     else return 0;
   }
 
+  if(vz_view->frame_rate == VZ_VSYNC)
+    vz_view->vsync = true;
+
   vz_view->init_width = vz_view->width;
   vz_view->init_height = vz_view->height;
 
@@ -367,6 +370,21 @@ static ERL_NIF_TERM vz_redraw(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[
   return ATOM_OK;
 }
 
+static ERL_NIF_TERM vz_get_frame_rate(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) {
+  VZview *vz_view;
+  int frame_rate;
+
+  if(!(argc == 1 &&
+       enif_get_resource(env, argv[0], vz_view_res, (void**)&vz_view))) {
+    return BADARG;
+  }
+
+  enif_mutex_lock(vz_view->lock);
+  frame_rate = vz_view->frame_rate;
+  enif_mutex_unlock(vz_view->lock);
+
+  return enif_make_int(env, frame_rate);
+}
 
 static ERL_NIF_TERM vz_force_send_events(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) {
   VZview *vz_view;
@@ -2349,6 +2367,7 @@ static ErlNifFunc nif_funcs[] =
     {"shutdown", 1, vz_shutdown},
     {"ready", 1, vz_ready},
     {"redraw", 1, vz_redraw},
+    {"get_frame_rate", 1, vz_get_frame_rate},
     {"force_send_events", 1, vz_force_send_events},
     {"setup_node", 3, vz_setup_node},
     {"global_composite_operation", 2, vz_global_composite_operation},

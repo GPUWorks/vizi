@@ -6,7 +6,7 @@ defmodule Vizi.View do
   defstruct context: nil, root: nil,
             width: 0, height: 0,
             custom_events: [],
-            redraw_mode: :manual,
+            redraw_mode: :interval,
             identity_xform: nil,
             mod: nil, state: nil
 
@@ -81,7 +81,7 @@ defmodule Vizi.View do
     min_height: 0,
     resizable: false,
     background_color: Vizi.Canvas.rgba(0, 0, 0, 0),
-    frame_rate: 30,
+    frame_rate: :vsync,
     pixel_ratio: 1.0
   ]
 
@@ -203,13 +203,18 @@ defmodule Vizi.View do
   @doc false
   def init({mod, args, opts}) do
     opts = Keyword.merge(@defaults, opts)
+    opts = Keyword.update!(opts, :frame_rate, fn
+      :vsync  -> -1
+      n       -> n
+    end)
     case NIF.create_view(opts) do
       {:ok, ctx} ->
         wait_until_initialized()
         xform = Vizi.Canvas.Transform.identity()
         redraw_mode = Keyword.get(opts, :redraw_mode, :manual)
         state = %Vizi.View{context: ctx, redraw_mode: redraw_mode, mod: mod, identity_xform: xform}
-        Process.put(:vz_frame_rate, opts[:frame_rate])
+        frame_rate = NIF.get_frame_rate(ctx)
+        Process.put(:vz_frame_rate, frame_rate)
         callback_init(mod, args, opts[:width], opts[:height], state)
       {:error, e} ->
         {:stop, e}
@@ -267,7 +272,7 @@ defmodule Vizi.View do
       _ ->
         NIF.shutdown(state.context)
         wait_until_shutdown()
-    end
+      end
     callback_terminate(reason, state)
   end
 
