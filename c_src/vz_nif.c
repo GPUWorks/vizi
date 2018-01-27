@@ -405,8 +405,8 @@ static ERL_NIF_TERM vz_force_send_events(ErlNifEnv* env, int argc, const ERL_NIF
 VZ_ASYNC_DECL(
   vz_setup_node,
   {
-    float *xform;
-    float *parent_xform;
+    float xform[6];
+    float parent_xform[6];
     double x;
     double y;
     double width;
@@ -432,8 +432,10 @@ VZ_ASYNC_DECL(
     nvgScissor(ctx, 0.f, 0.f, args->width, args->height);
   },
   {
+    float *xform;
+    float *parent_xform;
     if(!(argc == 3 &&
-        enif_get_resource(env, argv[1], vz_matrix_res, (void**)&args->parent_xform) &&
+        enif_get_resource(env, argv[1], vz_matrix_res, (void**)&parent_xform) &&
         enif_is_map(env, argv[2]))) {
       return BADARG;
     }
@@ -472,7 +474,10 @@ VZ_ASYNC_DECL(
     VZ_GET_NUMBER(env, value, args->alpha);
 
     enif_get_map_value(env, map, ATOM_XFORM, &value);
-    enif_get_resource(env, value, vz_matrix_res, (void**)&args->xform);
+    enif_get_resource(env, value, vz_matrix_res, (void**)&xform);
+
+    memcpy(args->xform, xform, 6 * sizeof(float));
+    memcpy(args->parent_xform, parent_xform, 6 * sizeof(float));
   }
 );
 
