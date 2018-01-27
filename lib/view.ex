@@ -266,6 +266,7 @@ defmodule Vizi.View do
         :ok
       _ ->
         NIF.shutdown(state.context)
+        wait_until_shutdown()
     end
     callback_terminate(reason, state)
   end
@@ -384,6 +385,16 @@ defmodule Vizi.View do
   defp wait_until_initialized do
     receive do
       :vz_initialized ->
+        :ok
+    end
+  end
+
+  defp wait_until_shutdown do
+    receive do
+      :vz_shutdown ->
+        :ok
+    after
+      5_000 ->
         :ok
     end
   end
