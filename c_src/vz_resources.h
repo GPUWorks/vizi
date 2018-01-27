@@ -38,7 +38,8 @@ VZ_ARRAY_DECLARE(double)
 struct VZview {
   VZop_array *op_array;
   VZev_array *ev_array;
-  VZres_array *res_array;
+  VZres_array *res_array[2];
+  unsigned res_ndx;
   ErlNifTid view_tid;
   ErlNifPid view_pid;
   PuglNativeWindow parent;

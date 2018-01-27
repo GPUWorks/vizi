@@ -34,7 +34,9 @@ VZview* vz_alloc_view(ErlNifEnv* env) {
   enif_self(env, &vz_view->view_pid);
   vz_view->op_array = VZop_array_new(256);
   vz_view->ev_array = VZev_array_new(16);
-  vz_view->res_array = VZres_array_new(256);
+  vz_view->res_array[0] = VZres_array_new(256);
+  vz_view->res_array[1] = VZres_array_new(256);
+  vz_view->res_ndx = 0;
   vz_view->msg_env = enif_alloc_env();
   vz_view->ev_env = enif_alloc_env();
   vz_view->id = vz_priv_new_view_id(priv);
@@ -264,12 +266,13 @@ ERL_NIF_TERM vz_make_resource(ErlNifEnv* env, void* obj) {
 
 ERL_NIF_TERM vz_make_managed_resource(ErlNifEnv* env, void* obj, VZview *vz_view) {
   ERL_NIF_TERM res = enif_make_resource(env, obj);
-  VZres_array_push(vz_view->res_array, obj);
+  VZres_array_push(vz_view->res_array[vz_view->res_ndx], obj);
   return res;
 }
 
 void vz_release_managed_resources(VZview *vz_view) {
-  VZres_array *a = vz_view->res_array;
+  vz_view->res_ndx = vz_view->res_ndx ? 0 : 1;
+  VZres_array *a = vz_view->res_array[vz_view->res_ndx];
   for(unsigned i = a->start_pos; i < a->end_pos; ++i) {
     enif_release_resource(a->array[i]);
   }
