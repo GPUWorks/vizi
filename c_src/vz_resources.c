@@ -154,9 +154,14 @@ void vz_image_dtor(ErlNifEnv *env, void *resource) {
     vz_op.handler = vz_image_dtor_handler;
     vz_op.args = args;
     args->handle = image->handle;
-    enif_mutex_lock(image->view->lock);
-    VZop_array_push(image->view->op_array, vz_op);
-    enif_mutex_unlock(image->view->lock);
+    if(enif_thread_self() == image->view->view_tid) {
+      VZop_array_push(image->view->op_array, vz_op);
+    }
+    else {
+      enif_mutex_lock(image->view->lock);
+      VZop_array_push(image->view->op_array, vz_op);
+      enif_mutex_unlock(image->view->lock);
+    }
   }
 }
 
