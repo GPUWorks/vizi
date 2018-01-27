@@ -205,6 +205,7 @@ defmodule Vizi.View do
     opts = Keyword.merge(@defaults, opts)
     case NIF.create_view(opts) do
       {:ok, ctx} ->
+        wait_until_initialized()
         xform = Vizi.Canvas.Transform.identity()
         redraw_mode = Keyword.get(opts, :redraw_mode, :manual)
         state = %Vizi.View{context: ctx, redraw_mode: redraw_mode, mod: mod, identity_xform: xform}
@@ -378,5 +379,12 @@ defmodule Vizi.View do
 
   defp handle_configure(ev, state) do
     %{state|identity_xform: ev.xform, width: ev.width, height: ev.height}
+  end
+
+  defp wait_until_initialized do
+    receive do
+      :vz_initialized ->
+        :ok
+    end
   end
 end
