@@ -90,10 +90,7 @@ static inline void vz_end_frame(VZview *vz_view) {
 }
 
 static inline void vz_send_update(VZview *vz_view) {
-  unsigned time = 0;//(vz_view->time.tv_sec * 1000) + (vz_view->time.tv_nsec / 1000000);
-  ERL_NIF_TERM msg = enif_make_tuple2(vz_view->msg_env, ATOM_UPDATE, enif_make_uint(vz_view->msg_env, time));
-  enif_send(NULL, &vz_view->view_pid, vz_view->msg_env, msg);
-  enif_clear_env(vz_view->msg_env);
+  enif_send(NULL, &vz_view->view_pid, NULL, ATOM_UPDATE);
 }
 
 static inline void vz_run(VZview *vz_view) {
@@ -139,7 +136,6 @@ static inline void vz_wait_for_frame(VZview *vz_view, PuglView *view, ULARGE_INT
     enif_mutex_unlock(vz_view->lock);
     sleep_until(ts);
     enif_mutex_lock(vz_view->lock);
-    //vz_view->time = *ts;
     set_next_time_point(ts, vz_view->frame_rate);
   }
 }

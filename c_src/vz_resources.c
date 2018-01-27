@@ -57,9 +57,8 @@ VZview* vz_alloc_view(ErlNifEnv* env) {
   vz_view->pixel_ratio = 1.0;
   vz_view->ctx = NULL;
   vz_view->parent = 0;
-  vz_view->bg = nvgRGB(0,0,0);
+  vz_view->bg = nvgRGBA(0,0,0,0);
   memset(vz_view->title, 0, VZ_MAX_STRING_LENGTH);
-  //clock_gettime(CLOCK_MONOTONIC, &vz_view->time);
 
   return vz_view;
 }

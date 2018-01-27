@@ -2336,7 +2336,6 @@ static int vz_load(ErlNifEnv* env, void** priv_data, ERL_NIF_TERM load_info)
 
 static void vz_unload(ErlNifEnv* env, void* priv_data) {
   __UNUSED(env);
-
   VZpriv *priv = (VZpriv*)priv_data;
   vz_free_priv(priv);
 

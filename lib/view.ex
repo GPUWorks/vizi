@@ -240,7 +240,7 @@ defmodule Vizi.View do
   end
 
   @doc false
-  def handle_info({:vz_update, _ts}, state) do
+  def handle_info(:vz_update, state) do
     root = Vizi.Node.update(state.root, state.identity_xform, state.context)
     Vizi.NIF.ready(state.context)
     {:noreply, %{state|root: root}}
