@@ -18,6 +18,11 @@ enum VZredraw_mode {
   VZ_MANUAL
 };
 
+enum VZdraw_image_mode {
+  VZ_KEEP_ASPECT_RATIO,
+  VZ_FILL
+};
+
 typedef struct VZview VZview;
 
 typedef ERL_NIF_TERM VZev;

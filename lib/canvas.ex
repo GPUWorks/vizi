@@ -293,7 +293,7 @@ defmodule Vizi.Canvas do
   Sets current fill style to an image pattern. Parameters (ox,oy) specify the left-top location of the image pattern,
   (ex,ey) the size of one image, angle rotation around the top-left corner and image is a handle to the image to render.
   """
-  defdelegate draw_image(ctx, x, y, width, height, image, alpha \\ 1.0), to: NIF
+  defdelegate draw_image(ctx, x, y, width, height, image, opts \\ []), to: NIF
 
 
   @doc """

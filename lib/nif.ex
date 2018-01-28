@@ -28,7 +28,7 @@ defmodule Vizi.NIF do
   def stroke_paint(_ctx, _paint), do: :erlang.nif_error(:vz_nif_lib_not_loaded)
   def fill_color(_ctx, _color), do: :erlang.nif_error(:vz_nif_lib_not_loaded)
   def fill_paint(_ctx, _paint), do: :erlang.nif_error(:vz_nif_lib_not_loaded)
-  def draw_image(_ctx, _x, _y, _width, _height, _image, _alpha), do: :erlang.nif_error(:vz_nif_lib_not_loaded)
+  def draw_image(_ctx, _x, _y, _width, _height, _image, _opts), do: :erlang.nif_error(:vz_nif_lib_not_loaded)
   def miter_limit(_ctx, _limit), do: :erlang.nif_error(:vz_nif_lib_not_loaded)
   def stroke_width(_ctx, _width), do: :erlang.nif_error(:vz_nif_lib_not_loaded)
   def line_cap(_ctx, _cap), do: :erlang.nif_error(:vz_nif_lib_not_loaded)

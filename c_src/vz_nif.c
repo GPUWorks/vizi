@@ -32,6 +32,16 @@ static bool vz_copy_string(ErlNifEnv *env, ERL_NIF_TERM in, char* out, size_t ou
   return true;
 }
 
+static bool vz_get_number(ErlNifEnv *env, ERL_NIF_TERM term, double *value) {
+  if(!enif_get_double(env, term, value)) {
+    int valuei;
+    if(enif_get_int(env, term, &valuei))
+      *value = (double)valuei;
+    else return false;
+  }
+  return true;
+}
+
 static bool vz_get_color(ErlNifEnv *env, ERL_NIF_TERM map, NVGcolor *color) {
   ERL_NIF_TERM r_term, g_term, b_term, a_term;
   double r, g, b, a;
@@ -148,6 +158,46 @@ static bool vz_get_matrix_list(ErlNifEnv *env, ERL_NIF_TERM list, float *matrix)
 
   return true;
 }
+
+static bool vz_get_draw_image_mode(ERL_NIF_TERM term, int *mode) {
+  if(enif_is_identical(term, ATOM_KEEP_ASPECT_RATIO)) {
+    *mode = VZ_KEEP_ASPECT_RATIO;
+    return true;
+  }
+  else if(enif_is_identical(term, ATOM_FILL)) {
+    *mode = VZ_FILL;
+    return true;
+  }
+  else return false;
+}
+
+static int vz_handle_draw_image_opts(ErlNifEnv *env, ERL_NIF_TERM opts, double *alpha, int *mode) {
+  ERL_NIF_TERM head, tail;
+  const ERL_NIF_TERM *tup_array;
+  int tup_arity = 0;
+
+  *alpha = 1.0;
+  *mode = VZ_KEEP_ASPECT_RATIO;
+
+  while(enif_get_list_cell(env, opts, &head, &tail)) {
+    opts = tail;
+
+    if(enif_get_tuple(env, head, &tup_arity, &tup_array)) {
+      if(tup_arity == 2) {
+        if(enif_is_identical(tup_array[0], ATOM_ALPHA) &&
+           !vz_get_number(env, tup_array[1], alpha))
+          return 0;
+
+        if(enif_is_identical(tup_array[0], ATOM_MODE) &&
+           !vz_get_draw_image_mode(tup_array[1], mode))
+          return 0;
+      } else return 0;
+    }
+    else return 0;
+  }
+  return 1;
+}
+
 
 static int vz_handle_create_view_opts(ErlNifEnv *env, ERL_NIF_TERM opts, VZview* vz_view ) {
   ERL_NIF_TERM head, tail;
@@ -730,14 +780,34 @@ VZ_ASYNC_DECL(
     double height;
     double alpha;
     int handle;
+    int mode;
   },
   {
     int img_width;
     int img_height;
+    double width = args->width;
+    double height = args->height;
     nvgSave(ctx);
     nvgImageSize(ctx, args->handle, &img_width, &img_height);
-    nvgTranslate(ctx, args->x, args->y);
-    nvgScale(ctx, args->width / img_width, args->height / img_height);
+    if(width == (double)img_width && height == (double)img_height) {
+      nvgTranslate(ctx, args->x, args->y);
+    }
+    else if(args->mode == VZ_KEEP_ASPECT_RATIO) {
+      if(width / height > img_width / img_height) {
+        double f = height / img_height;
+        nvgTranslate(ctx, args->x + ((width - (f * img_width)) / 2) , args->y);
+        nvgScale(ctx, f, f);
+      }
+      else {
+        double f = width / img_width;
+        nvgTranslate(ctx, args->x, args->y + ((height - (f * img_height)) / 2));
+        nvgScale(ctx, f, f);
+      }
+    }
+    else /* VZ_FILL */ {
+      nvgTranslate(ctx, args->x, args->y);
+      nvgScale(ctx, width / img_width, height / img_height);
+    }
     nvgBeginPath(ctx);
     nvgRect(ctx, 0, 0, img_width, img_height);
     nvgFillPaint(ctx, nvgImagePattern(ctx, 0, 0, img_width, img_height, 0, args->handle, args->alpha));
@@ -748,7 +818,8 @@ VZ_ASYNC_DECL(
     VZimage *image;
 
     if(!(argc == 7 &&
-       enif_get_resource(env, argv[5], vz_image_res, (void**)&image))) {
+       enif_get_resource(env, argv[5], vz_image_res, (void**)&image) &&
+       enif_is_list(env, argv[6]))) {
       return BADARG;
     }
 
@@ -757,7 +828,7 @@ VZ_ASYNC_DECL(
     VZ_GET_NUMBER(env, argv[2], args->y);
     VZ_GET_NUMBER(env, argv[3], args->width);
     VZ_GET_NUMBER(env, argv[4], args->height);
-    VZ_GET_NUMBER(env, argv[6], args->alpha);
+    vz_handle_draw_image_opts(env, argv[6], &args->alpha, &args->mode);
   }
 );
 

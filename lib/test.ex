@@ -225,19 +225,22 @@ defmodule BM do
     end
 
     def init(node, ctx) do
-      {:ok, Vizi.Node.put_param(node, :img, Image.create(ctx, "/home/zambal/Pictures/cubes/20170526_172329.jpg"))}
+      {:ok, Vizi.Node.put_params(node, %{
+        img: Image.create(ctx, "/home/zambal/Pictures/cubes/20170526_172329.jpg"),
+        img2: Image.create(ctx, "/home/zambal/Pictures/20170526/20170526_091904.jpg")
+      })}
     end
 
     def draw(params, width, height, ctx) do
 
       ctx
       |> global_composite_operation(:destination_atop)
-      |> draw_image(0, 50, 200, 200, params.img, 0.5)
-      |> draw_image(100, 150, 200, 200, params.img, 0.5)
+      |> draw_image(0, 50, 200, 200, params.img, alpha: 0.5, mode: :fill)
+      |> draw_image(100, 150, 200, 200, params.img, alpha: 0.5, mode: :fill)
 
       |> global_composite_operation(:destination_over)
-      |> draw_image(350, 50, 200, 200, params.img, 0.5)
-      |> draw_image(450, 150, 200, 200, params.img, 0.5)
+      |> draw_image(350, 50, 200, 200, params.img2, alpha: 0.5)
+      |> draw_image(450, 150, 200, 200, params.img2, alpha: 0.5, mode: :fill)
     end
       @temp """
     def draw(params, width, height, ctx) do

@@ -63,6 +63,8 @@ void vz_make_atoms(ErlNifEnv* env) {
   ATOM_ROTATE = enif_make_atom(env, "rotate");
   ATOM_ALPHA = enif_make_atom(env, "alpha");
   ATOM_XFORM = enif_make_atom(env, "xform");
+  ATOM_KEEP_ASPECT_RATIO = enif_make_atom(env, "keep_aspect_ratio");
+  ATOM_FILL = enif_make_atom(env, "fill");
 
   ATOM_F1 = enif_make_atom(env, "f1");
   ATOM_F2 = enif_make_atom(env, "f2");
