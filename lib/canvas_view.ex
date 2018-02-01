@@ -39,11 +39,13 @@ defmodule Vizi.CanvasView do
   # Vizi.View callbacks
 
   def init(_args, width, height) do
-    {:ok, Vizi.Node.create(RootNode, %{__draw_fun__: nil}, x: 0, y: 0, width: width, height: height), nil}
+    root = Vizi.Node.create(RootNode, x: 0, y: 0, width: width, height: height)
+    |> Vizi.Node.put_param(:__draw_fun__, nil)
+    {:ok, root, nil}
   end
 
   def handle_cast({:draw, params, fun}, root, state) do
-    root = Vizi.Node.remove_animations(root)
+    root = Vizi.Node.remove_all_animations(root)
 
     {:noreply, %Vizi.Node{root|params: Map.put(params, :__draw_fun__, fun)}, state}
   end
@@ -59,6 +61,6 @@ defmodule Vizi.CanvasView do
   end
 
   def handle_cast(:remove_animations, root, state) do
-    {:noreply, Vizi.Node.remove_animations(root), state}
+    {:noreply, Vizi.Node.remove_all_animations(root), state}
   end
 end

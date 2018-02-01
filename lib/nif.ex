@@ -8,6 +8,7 @@ defmodule Vizi.NIF do
     :vizi
     |> Application.app_dir("priv")
     |> Path.join("vz_nif")
+    |> String.to_charlist()
     |> :erlang.load_nif(0)
   end
 
