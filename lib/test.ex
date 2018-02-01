@@ -7,7 +7,7 @@ defmodule TestC1 do
 
   def create(opts) do
     use Vizi.Tween
-    tween = Tween.move %{}, %{angle: 359}, in: sec(6)
+    tween = Tween.move %{}, %{angle: 359}, in: sec(2)
 
     __MODULE__
     |> Vizi.Node.create(opts)
@@ -15,7 +15,7 @@ defmodule TestC1 do
     |> Vizi.Node.animate(tween, loop: true, updater: fn node ->
       angle = node.params.angle
       children = for n <- node.children do
-        Vizi.Node.put_param(n, :angle, angle + n.x)
+        Vizi.Node.put_param(n, :angle, angle + n.x * n.x)
       end
       %{node|children: children}
     end)
@@ -24,7 +24,7 @@ defmodule TestC1 do
   def init(node, ctx) do
     bm = Bitmap.create(ctx, 500, 300)
     Enum.each(0..(Bitmap.size(bm) - 1), fn n ->
-      Bitmap.put(bm, n, rem(n, 256), 255 - rem(n, 256), 0, 255)
+      Bitmap.put(bm, n, rem(n, 256), 255 - rem(n, 25), 0, 255)
     end)
     img = Image.from_bitmap(ctx, bm)
     {:ok, Vizi.Node.put_params(node, %{
@@ -36,7 +36,6 @@ defmodule TestC1 do
   @tau 6.28318530718
 
   def draw(params, width, height, ctx) do
-    cnt = params.cnt
     img = params.img
     paint = Paint.image_pattern(ctx, 0, 0, 500, 300, 0, img)
 
@@ -56,7 +55,7 @@ defmodule TestC1 do
     {:done, Vizi.Node.update_attributes(node, rotate: fn x -> if x >= @tau, do: 0, else: x + 0.001 end)}
   end
 
-  def handle_event(node, %Events.Button{type: :button_release} = ev) do
+  def handle_event(node, %Events.Button{type: :button_release}) do
     use Vizi.Tween
 
     node = Vizi.Node.add_task(node, fn params, _width, _height, ctx ->
@@ -64,7 +63,7 @@ defmodule TestC1 do
       offset1 = :rand.uniform(256)
       offset2 = :rand.uniform(256)
       Enum.each(0..(Bitmap.size(bm) - 1), fn n ->
-        Bitmap.put(bm, n, 255 - rem(offset1 + n, 256), rem(offset2 + n, 256), 128, 255)
+        Bitmap.put(bm, n, 255 - rem(offset1 + n, 25), rem(offset2 + n, 256), 128, 255)
       end)
       img = Image.from_bitmap(ctx, bm)
 
@@ -95,7 +94,7 @@ defmodule TestC1 do
     {:done, %{node|children: ch}}
   end
 
-  def handle_event(_node, ev) do
+  def handle_event(_node, _ev) do
    # IO.inspect ev
     :cont
   end
@@ -123,13 +122,13 @@ defmodule TestC2 do
     |> rotate(deg_to_rad(params.angle))
     |> translate(-50, -50)
     |> begin_path()
-    |> rect(40, 40, 20, 20)
+    |> rect(50, 40, 20,  20)
     |> fill_color(rgba(0, 0, 255))
     |> fill()
   end
 
   def handle_event(_node, %Events.Button{type: :button_release}) do
-    :done
+    :cont
   end
   def handle_event(node, %Events.Custom{} = ev) do
     IO.puts "TestC3 received CUSTOM event: #{inspect ev}"
@@ -190,7 +189,7 @@ defmodule T do
     n1 = TestC1.create(x: 100, y: 0, width: 500, height: 300, children: for n <- -100..400 do
       TestC2.create(x: n, y: n, width: 100, height: 100, alpha: 0.05)
     end)
-    n2 = TestC1.create(x: 100, y: 300, width: 500, height: 300, children: for n <- -100..400 do
+    _n2 = TestC1.create(x: 100, y: 300, width: 500, height: 300, children: for n <- -100..400 do
       TestC2.create(x: n, y: n, width: 100, height: 100, alpha: 0.05)
     end)
     root = Root.create(width: 800, height: 600, children: [n1])
@@ -226,13 +225,12 @@ defmodule BM do
 
     def init(node, ctx) do
       {:ok, Vizi.Node.put_params(node, %{
-        img: Image.create(ctx, "/home/zambal/Pictures/cubes/20170526_172329.jpg"),
-        img2: Image.create(ctx, "/home/zambal/Pictures/20170526/20170526_091904.jpg")
+        img: Image.create(ctx, "/home/zambal/Pictures/Vakantie-New-York.jpg"),
+        img2: Image.create(ctx, "/home/zambal/Pictures/Vakantie-New-York.jpg")
       })}
     end
 
-    def draw(params, width, height, ctx) do
-
+    def draw(params, _width, _height, ctx) do
       ctx
       |> global_composite_operation(:destination_atop)
       |> draw_image(0, 50, 200, 200, params.img, alpha: 0.5, mode: :fill)
@@ -240,9 +238,9 @@ defmodule BM do
 
       |> global_composite_operation(:destination_over)
       |> draw_image(350, 50, 200, 200, params.img2, alpha: 0.5)
-      |> draw_image(450, 150, 200, 200, params.img2, alpha: 0.5, mode: :fill)
+      |> draw_image(450, 150, 200, 200, params.img2, alpha: 0.5)
     end
-      @temp """
+    """
     def draw(params, width, height, ctx) do
       for n <- 0..499 do
         ctx
