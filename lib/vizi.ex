@@ -4,11 +4,12 @@ defmodule Vizi do
 
   # Public API
 
+  @spec start() :: {:ok, [Application.app]} | {:error, {Application.app, term}}
   def start do
     Application.ensure_all_started(:vizi)
-    :ok
   end
 
+  @spec start_view(module, term, Vizi.View.options) :: Supervisor.on_start_child()
   def start_view(mod, args, opts) do
     DynamicSupervisor.start_child(:vizi_view_sup, %{
       id: Vizi.View,
@@ -17,6 +18,7 @@ defmodule Vizi do
     })
   end
 
+  @spec reload() :: :ok
   def reload do
     resume_fun = if Application.get_env(:vizi, :reinit_on_reload, true) do
       &Vizi.View.reinit_and_resume/1
@@ -29,6 +31,7 @@ defmodule Vizi do
     Enum.each(get_view_pids(), resume_fun)
   end
 
+  @spec reinit_on_reload(boolean) :: :ok
   def reinit_on_reload(reinit) do
     Application.put_env(:vizi, :reinit_on_reload, reinit)
     :ok
