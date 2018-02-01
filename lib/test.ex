@@ -51,11 +51,11 @@ defmodule TestC1 do
     {:ok, update_in(params.cnt, fn x -> if x == 255, do: 0, else: x + 1 end)}
   end
 
-  def handle_event(node, %Events.Custom{type: :update}) do
+  def handle_event(%Events.Custom{type: :update}, node) do
     {:done, Vizi.Node.update_attributes(node, rotate: fn x -> if x >= @tau, do: 0, else: x + 0.001 end)}
   end
 
-  def handle_event(node, %Events.Button{type: :button_release}) do
+  def handle_event(%Events.Button{type: :button_release}, node) do
     use Vizi.Tween
 
     node = Vizi.Node.add_task(node, fn params, _width, _height, ctx ->
@@ -85,7 +85,7 @@ defmodule TestC1 do
     {:done, Vizi.Node.animate(node, t, mode: :alternate, loop: false, tag: :test, replace: true)}
   end
 
-  def handle_event(node, %Events.Motion{} = ev) do
+  def handle_event(%Events.Motion{} = ev, node) do
     #IO.puts "TestC1 received MOTION event: #{inspect ev}"
     ch = Stream.with_index(node.children)
     |> Enum.map(fn {node, ndx} ->
@@ -94,7 +94,7 @@ defmodule TestC1 do
     {:done, %{node|children: ch}}
   end
 
-  def handle_event(_node, _ev) do
+  def handle_event(_ev, _node) do
    # IO.inspect ev
     :cont
   end
@@ -127,10 +127,10 @@ defmodule TestC2 do
     |> fill()
   end
 
-  def handle_event(_node, %Events.Button{type: :button_release}) do
+  def handle_event(%Events.Button{type: :button_release}, _node) do
     :cont
   end
-  def handle_event(node, %Events.Custom{} = ev) do
+  def handle_event(%Events.Custom{} = ev, node) do
     IO.puts "TestC3 received CUSTOM event: #{inspect ev}"
     {:cont, Vizi.Node.update_attributes(node, rotate: fn x -> x + 1 end)}
   end
@@ -162,7 +162,7 @@ defmodule TestC3 do
     |> text(0, 40, "Hello World!")
   end
 
-  def handle_event(_node, ev) do
+  def handle_event(ev, _node) do
     IO.puts "TestC3 received event: #{inspect ev}"
     :cont
   end

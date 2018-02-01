@@ -421,7 +421,7 @@ defmodule Vizi.View do
 
   defp handle_events(events, %{root: root, context: ctx} = state) do
     {events, root, mod_state, state} = Enum.reduce(events, {[], root, state.state, state}, &do_handle_event/2)
-    {root, _} = Vizi.Node.handle_events(root, Enum.reverse(events), ctx)
+    {root, _} = Vizi.Node.handle_events(Enum.reverse(events), root, ctx)
     %{state|root: root, custom_events: [], state: mod_state}
   end
 

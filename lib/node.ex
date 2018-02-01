@@ -80,10 +80,11 @@ defmodule Vizi.Node do
   """
   @callback draw(params :: params, width :: number, height :: number, ctx :: Vizi.View.context) :: term
 
-  @callback handle_event(node :: Vizi.Node.t, event :: struct) ::
+  @callback handle_event(event :: struct, node :: Vizi.Node.t) ::
   :cont | :done |
   {:done, new_el} |
   {:cont, new_el} when new_el: Vizi.Node.t
+
 
   @doc false
   defmacro __using__(_) do
@@ -101,7 +102,7 @@ defmodule Vizi.Node do
       end
 
       @doc false
-      def handle_event(_el, _event) do
+      def handle_event(_event, _el) do
         :cont
       end
 
@@ -347,15 +348,15 @@ defmodule Vizi.Node do
   # Event handling
 
   @doc false
-  def handle_events(%Node{} = node, events, ctx) do
+  def handle_events(events, %Node{} = node, ctx) do
 
     {node, events} = Enum.reduce(events, {node, []}, &maybe_handle_event/2)
-    {children, events} = handle_events(node.children, Enum.reverse(events), ctx)
+    {children, events} = handle_events(Enum.reverse(events), node.children, ctx)
     {%Node{node | children: children}, events}
   end
-  def handle_events(els, events, ctx) when is_list(els) do
+  def handle_events(events, els, ctx) when is_list(els) do
     {els, events} = Enum.reduce(els, {[], events}, fn node, {els, evs} ->
-      {new_el, new_evs} = handle_events(node, evs, ctx)
+      {new_el, new_evs} = handle_events(evs, node, ctx)
       {[new_el | els], new_evs}
     end)
     {Enum.reverse(els), events}
@@ -369,7 +370,7 @@ defmodule Vizi.Node do
     inv_xform = NIF.transform_inverse(node.xform)
     {x, y} = NIF.transform_point(inv_xform, ev.abs_x, ev.abs_y)
     if touches?(node, x, y) do
-      handle_event(node, %{ev|x: x, y: y}, acc)
+      handle_event(%{ev|x: x, y: y}, node, acc)
     else
       {node, [ev | acc]}
     end
@@ -378,8 +379,8 @@ defmodule Vizi.Node do
     {node, [ev | acc]}
   end
 
-  defp handle_event(node, ev, acc) do
-    case node.mod.handle_event(node, ev) do
+  defp handle_event(ev, node, acc) do
+    case node.mod.handle_event(ev, node) do
       :cont ->
         {node, [ev | acc]}
       {:done, new_el} ->
