@@ -5,7 +5,10 @@ defmodule Vizi.NIF do
 
 
   def init do
-    :erlang.load_nif('./priv/vz_nif', 0)
+    :vizi
+    |> Application.app_dir("priv")
+    |> Path.join("vz_nif")
+    |> :erlang.load_nif(0)
   end
 
   def create_view(_opts), do: :erlang.nif_error(:vz_nif_lib_not_loaded)
