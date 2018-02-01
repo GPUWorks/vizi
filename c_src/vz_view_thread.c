@@ -206,7 +206,12 @@ void* vz_view_thread(void *p) {
 
     puglProcessEvents(view);
     vz_send_events(vz_view);
-    if (vz_view->redraw_mode == VZ_INTERVAL)
+
+    if(vz_view->suspend) {
+      enif_send(NULL, &vz_view->view_pid, NULL, ATOM_SUSPENDED);
+      enif_cond_wait(vz_view->suspended_cv, vz_view->lock);
+    }
+    else if (vz_view->redraw_mode == VZ_INTERVAL)
       puglPostRedisplay(view);
 
 #ifdef VZ_LOG_TIMING

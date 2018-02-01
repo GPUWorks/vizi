@@ -369,6 +369,37 @@ static ERL_NIF_TERM vz_shutdown(ErlNifEnv* env, int argc, const ERL_NIF_TERM arg
   return ATOM_OK;
 }
 
+static ERL_NIF_TERM vz_suspend(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) {
+  VZview *vz_view;
+
+  if(!(argc == 1 &&
+       enif_get_resource(env, argv[0], vz_view_res, (void**)&vz_view))) {
+    return BADARG;
+  }
+
+  enif_mutex_lock(vz_view->lock);
+  vz_view->suspend = true;
+  enif_mutex_unlock(vz_view->lock);
+
+  return ATOM_OK;
+}
+
+static ERL_NIF_TERM vz_resume(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) {
+  VZview *vz_view;
+
+  if(!(argc == 1 &&
+       enif_get_resource(env, argv[0], vz_view_res, (void**)&vz_view))) {
+    return BADARG;
+  }
+
+  enif_mutex_lock(vz_view->lock);
+  vz_view->suspend = false;
+  enif_cond_signal(vz_view->suspended_cv);
+  enif_mutex_unlock(vz_view->lock);
+
+  return ATOM_OK;
+}
+
 static ERL_NIF_TERM vz_ready(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) {
   VZview *vz_view;
 
@@ -2477,6 +2508,8 @@ static ErlNifFunc nif_funcs[] =
 {
     {"create_view", 1, vz_create_view},
     {"shutdown", 1, vz_shutdown},
+    {"suspend", 1, vz_suspend},
+    {"resume", 1, vz_resume},
     {"ready", 1, vz_ready},
     {"redraw", 1, vz_redraw},
     {"get_frame_rate", 1, vz_get_frame_rate},

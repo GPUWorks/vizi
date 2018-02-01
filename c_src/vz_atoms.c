@@ -25,6 +25,7 @@ void vz_make_atoms(ErlNifEnv* env) {
   ATOM_UPDATE = enif_make_atom(env, "vz_update");
   ATOM_EVENT = enif_make_atom(env, "vz_event");
   ATOM_INITIALIZED = enif_make_atom(env, "vz_initialized");
+  ATOM_SUSPENDED = enif_make_atom(env, "vz_suspended");
 
   ATOM__STRUCT__ = enif_make_atom(env, "__struct__");
   ATOM_CONTEXT = enif_make_atom(env, "context");

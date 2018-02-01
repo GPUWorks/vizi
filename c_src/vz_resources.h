@@ -54,10 +54,12 @@ struct VZview {
   ErlNifEnv *msg_env;
   ErlNifEnv *ev_env;
   ErlNifCond *execute_cv;
+  ErlNifCond *suspended_cv;
   ErlNifMutex *lock;
   const char *id;
   bool busy;
   bool shutdown;
+  bool suspend;
   bool resizable;
   bool force_send_events;
   int width;

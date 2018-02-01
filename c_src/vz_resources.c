@@ -23,8 +23,15 @@ VZview* vz_alloc_view(ErlNifEnv* env) {
     return NULL;
   }
 
-  if((vz_view->execute_cv = enif_cond_create("vz_thread_cond")) == NULL) {
+  if((vz_view->execute_cv = enif_cond_create("vz_thread_execute_cond")) == NULL) {
     enif_mutex_destroy(vz_view->lock);
+    enif_release_resource(vz_view);
+    return NULL;
+  }
+
+  if((vz_view->suspended_cv = enif_cond_create("vz_thread_suspended_cond")) == NULL) {
+    enif_mutex_destroy(vz_view->lock);
+    enif_cond_destroy(vz_view->execute_cv);
     enif_release_resource(vz_view);
     return NULL;
   }
@@ -42,6 +49,7 @@ VZview* vz_alloc_view(ErlNifEnv* env) {
   vz_view->id = vz_priv_new_view_id(priv);
   vz_view->busy = false;
   vz_view->shutdown = false;
+  vz_view->suspend = false;
   vz_view->resizable = false;
   vz_view->force_send_events = false;
   vz_view->frame_rate = VZ_VSYNC;
@@ -78,6 +86,7 @@ void vz_view_dtor(ErlNifEnv *env, void *resource) {
 
   enif_mutex_destroy(vz_view->lock);
   enif_cond_destroy(vz_view->execute_cv);
+  enif_cond_destroy(vz_view->suspended_cv);
   enif_free_env(vz_view->msg_env);
   enif_free_env(vz_view->ev_env);
 

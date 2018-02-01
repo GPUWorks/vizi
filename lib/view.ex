@@ -8,7 +8,8 @@ defmodule Vizi.View do
             custom_events: [],
             redraw_mode: :interval,
             identity_xform: nil,
-            mod: nil, state: nil
+            mod: nil, state: nil,
+            init_args: nil, suspended: false
 
   @type context :: <<>>
 
@@ -34,7 +35,8 @@ defmodule Vizi.View do
     custom_events: [%Vizi.Events.Custom{}],
     redraw_mode: redraw_mode,
     identity_xform: Vizi.Canvas.Transform.t,
-    mod: module, state: term
+    mod: module, state: term,
+    init_args: term, suspended: boolean
   }
 
   @callback init(args :: term, width :: integer, height :: integer) ::
@@ -198,6 +200,22 @@ defmodule Vizi.View do
     GenServer.cast(self(), :vz_redraw)
   end
 
+  def suspend(server) do
+    :ok = GenServer.call(server, :suspend)
+    :ok = GenServer.call(server, :wait_for_suspended)
+    :sys.suspend(server)
+  end
+
+  def reinit_and_resume(server) do
+    GenServer.cast(server, :reinit)
+    :sys.resume(server)
+  end
+
+  def resume(server) do
+    GenServer.cast(server, :resume)
+    :sys.resume(server)
+  end
+
   # GenServer implementation
 
   @doc false
@@ -212,7 +230,7 @@ defmodule Vizi.View do
         wait_until_initialized()
         xform = Vizi.Canvas.Transform.identity(ctx)
         redraw_mode = Keyword.get(opts, :redraw_mode, :manual)
-        state = %Vizi.View{context: ctx, redraw_mode: redraw_mode, mod: mod, identity_xform: xform}
+        state = %Vizi.View{context: ctx, redraw_mode: redraw_mode, mod: mod, identity_xform: xform, init_args: args}
         frame_rate = NIF.get_frame_rate(ctx)
         Process.put(:vz_frame_rate, frame_rate)
         callback_init(mod, args, opts[:width], opts[:height], state)
@@ -224,6 +242,23 @@ defmodule Vizi.View do
   @doc false
   def handle_call({:vz_view_call, request}, from, state) do
     callback_call(request, from, state)
+  end
+
+  def handle_call(:suspend, _from, state) do
+    unless state.suspended do
+      NIF.suspend(state.context)
+    end
+    {:reply, :ok, %{state|suspended: true}}
+  end
+
+  def handle_call(:wait_for_suspended, _from, state) do
+    receive do
+      :vz_suspended ->
+        :ok
+      after 5_000 ->
+        raise "failed to suspend view thread"
+    end
+    {:reply, :ok, state}
   end
 
   @doc false
@@ -244,11 +279,39 @@ defmodule Vizi.View do
     {:noreply, state}
   end
 
+  def handle_cast(:resume, state) do
+    if state.suspended do
+      NIF.resume(state.context)
+      {:noreply, %{state|suspended: false}}
+    else
+      {:noreply, state}
+    end
+  end
+
+  def handle_cast(:reinit, state) do
+    if state.suspended do
+      NIF.resume(state.context)
+      callback_terminate(:reload, state)
+      case callback_init(state.mod, state.init_args, state.width, state.height, state) do
+        {:ok, state} ->
+          {:noreply, %{state|suspended: false}}
+        {:ok, state, _timeout} ->
+          {:noreply, %{state|suspended: false}}
+        :ignore ->
+          {:stop, :normal, :error, state}
+        {:stop, reason} ->
+          {:stop, reason, :error, state}
+      end
+    else
+      {:noreply, state}
+    end
+  end
+
   @doc false
   def handle_info(:vz_update, state) do
-    root = Vizi.Node.update(state.root, state.identity_xform, state.context)
-    Vizi.NIF.ready(state.context)
-    {:noreply, %{state|root: root}}
+      root = Vizi.Node.update(state.root, state.identity_xform, state.context)
+      Vizi.NIF.ready(state.context)
+      {:noreply, %{state|root: root}}
   end
 
   def handle_info({:vz_event, events}, state) when is_list(events) do
@@ -257,7 +320,7 @@ defmodule Vizi.View do
   end
 
   def handle_info(:vz_shutdown, state) do
-    {:stop, {:shutdown, :vz_shutdown_event}, state}
+    {:stop, {:shutdown, :request_from_view}, state}
   end
 
   def handle_info(msg, state) do
@@ -265,14 +328,12 @@ defmodule Vizi.View do
   end
 
   @doc false
+  def terminate({:shutdown, :request_from_view} = reason, state) do
+    callback_terminate(reason, state)
+  end
   def terminate(reason, state) do
-    case reason do
-      {:shutdown, :vz_shutdown_event} ->
-        :ok
-      _ ->
-        NIF.shutdown(state.context)
-        wait_until_shutdown()
-      end
+    NIF.shutdown(state.context)
+    wait_until_shutdown()
     callback_terminate(reason, state)
   end
 

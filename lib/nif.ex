@@ -13,6 +13,8 @@ defmodule Vizi.NIF do
 
   def create_view(_opts), do: :erlang.nif_error(:vz_nif_lib_not_loaded)
   def shutdown(_ctx), do: :erlang.nif_error(:vz_nif_lib_not_loaded)
+  def suspend(_ctx), do: :erlang.nif_error(:vz_nif_lib_not_loaded)
+  def resume(_ctx), do: :erlang.nif_error(:vz_nif_lib_not_loaded)
   def ready(_ctx), do: :erlang.nif_error(:vz_nif_lib_not_loaded)
   def redraw(_ctx), do: :erlang.nif_error(:vz_nif_lib_not_loaded)
   def get_frame_rate(_ctx), do: :erlang.nif_error(:vz_nif_lib_not_loaded)
