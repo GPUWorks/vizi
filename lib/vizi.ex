@@ -1,23 +1,12 @@
 defmodule Vizi do
   use Application
 
+
+  # Public API
+
   def start do
     Application.ensure_all_started(:vizi)
     :ok
-  end
-
-  def start(_type, _args) do
-    children = if Application.get_env(:vizi, :auto_reload, false) do
-      [Vizi.Reloader.Supervisor]
-    else
-      []
-    end
-
-    children = [
-      {DynamicSupervisor, [name: :vizi_view_sup, strategy: :one_for_one]} | children
-    ]
-
-    Supervisor.start_link(children, strategy: :one_for_one, name: :vizi_sup)
   end
 
   def start_view(mod, args, opts) do
@@ -44,6 +33,26 @@ defmodule Vizi do
     Application.put_env(:vizi, :reinit_on_reload, reinit)
     :ok
   end
+
+
+  # Application implementation
+
+  def start(_type, _args) do
+    children = if Application.get_env(:vizi, :auto_reload, false) do
+      [Vizi.Reloader.Supervisor]
+    else
+      []
+    end
+
+    children = [
+      {DynamicSupervisor, [name: :vizi_view_sup, strategy: :one_for_one]} | children
+    ]
+
+    Supervisor.start_link(children, strategy: :one_for_one, name: :vizi_sup)
+  end
+
+
+  # Internal functions
 
   defp get_view_pids do
     children = DynamicSupervisor.which_children(:vizi_view_sup)
