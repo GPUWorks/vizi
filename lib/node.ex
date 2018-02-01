@@ -322,7 +322,7 @@ defmodule Vizi.Node do
   defp maybe_init(%Node{initialized: false} = node, ctx) do
     case node.mod.init(node, ctx) do
       {:ok, node} ->
-        %Node{node|xform: NIF.transform_translate(0, 0), initialized: true}
+        %Node{node|xform: NIF.transform_identity(ctx), initialized: true}
       bad_return ->
         raise "bad return value from #{inspect node.mod}.init/2: #{inspect bad_return}"
     end

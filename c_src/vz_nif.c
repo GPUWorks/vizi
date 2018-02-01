@@ -455,8 +455,8 @@ static ERL_NIF_TERM vz_force_send_events(ErlNifEnv* env, int argc, const ERL_NIF
 VZ_ASYNC_DECL(
   vz_setup_node,
   {
-    float xform[6];
-    float parent_xform[6];
+    float *xform;
+    float *parent_xform;
     double x;
     double y;
     double width;
@@ -482,10 +482,8 @@ VZ_ASYNC_DECL(
     nvgScissor(ctx, 0.f, 0.f, args->width, args->height);
   },
   {
-    float *xform;
-    float *parent_xform;
     if(!(argc == 3 &&
-        enif_get_resource(env, argv[1], vz_matrix_res, (void**)&parent_xform) &&
+        enif_get_resource(env, argv[1], vz_matrix_res, (void**)&args->parent_xform) &&
         enif_is_map(env, argv[2]))) {
       return BADARG;
     }
@@ -524,10 +522,7 @@ VZ_ASYNC_DECL(
     VZ_GET_NUMBER(env, value, args->alpha);
 
     enif_get_map_value(env, map, ATOM_XFORM, &value);
-    enif_get_resource(env, value, vz_matrix_res, (void**)&xform);
-
-    memcpy(args->xform, xform, 6 * sizeof(float));
-    memcpy(args->parent_xform, parent_xform, 6 * sizeof(float));
+    enif_get_resource(env, value, vz_matrix_res, (void**)&args->xform);
   }
 );
 
@@ -1040,17 +1035,18 @@ VZ_ASYNC_DECL(
 );
 
 static ERL_NIF_TERM vz_transform_identity(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) {
+  VZview *vz_view;
   float *matrix;
 
-  if(argc != 0) goto err;
+  if(!(argc == 1 &&
+       enif_get_resource(env, argv[0], vz_view_res, (void**)&vz_view))) {
+    return BADARG;
+  }
 
   matrix = vz_alloc_matrix();
   nvgTransformIdentity(matrix);
 
-  return vz_make_resource(env, matrix);
-
-  err:
-  return BADARG;
+  return vz_make_managed_resource(env, matrix, vz_view);
 }
 
 
@@ -2513,7 +2509,7 @@ static ErlNifFunc nif_funcs[] =
     {"skew_y", 2, vz_skew_y},
     {"scale", 3, vz_scale},
     {"current_transform", 1, vz_current_transform},
-    {"transform_identity", 0, vz_transform_identity},
+    {"transform_identity", 1, vz_transform_identity},
     {"transform_translate", 2, vz_transform_translate},
     {"transform_scale", 2, vz_transform_scale},
     {"transform_rotate", 1, vz_transform_rotate},

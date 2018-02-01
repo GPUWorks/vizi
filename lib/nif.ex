@@ -45,7 +45,7 @@ defmodule Vizi.NIF do
   def skew_y(_ctx, _angle), do: :erlang.nif_error(:vz_nif_lib_not_loaded)
   def scale(_ctx, _x, _y), do: :erlang.nif_error(:vz_nif_lib_not_loaded)
   def current_transform(_ctx), do: :erlang.nif_error(:vz_nif_lib_not_loaded)
-  def transform_identity(), do: :erlang.nif_error(:vz_nif_lib_not_loaded)
+  def transform_identity(_ctx), do: :erlang.nif_error(:vz_nif_lib_not_loaded)
   def transform_translate(_x, _y), do: :erlang.nif_error(:vz_nif_lib_not_loaded)
   def transform_scale(_x, _y), do: :erlang.nif_error(:vz_nif_lib_not_loaded)
   def transform_rotate(_angle), do: :erlang.nif_error(:vz_nif_lib_not_loaded)

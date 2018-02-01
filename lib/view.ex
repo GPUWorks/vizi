@@ -210,7 +210,7 @@ defmodule Vizi.View do
     case NIF.create_view(opts) do
       {:ok, ctx} ->
         wait_until_initialized()
-        xform = Vizi.Canvas.Transform.identity()
+        xform = Vizi.Canvas.Transform.identity(ctx)
         redraw_mode = Keyword.get(opts, :redraw_mode, :manual)
         state = %Vizi.View{context: ctx, redraw_mode: redraw_mode, mod: mod, identity_xform: xform}
         frame_rate = NIF.get_frame_rate(ctx)
