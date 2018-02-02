@@ -26,9 +26,11 @@ defmodule Vizi do
       &Vizi.View.resume/1
     end
 
-    Enum.each(get_view_pids(), &Vizi.View.suspend/1)
+    pids = get_view_pids()
+
+    Enum.each(pids, &Vizi.View.suspend/1)
     Mix.Tasks.Compile.Elixir.run([])
-    Enum.each(get_view_pids(), resume_fun)
+    Enum.each(pids, resume_fun)
   end
 
   @spec reinit_on_reload(boolean) :: :ok
@@ -41,7 +43,7 @@ defmodule Vizi do
   # Application implementation
 
   def start(_type, _args) do
-    children = if Application.get_env(:vizi, :auto_reload, false) do
+    children = if Application.get_env(:vizi, :live_reload, false) do
       [Vizi.Reloader.Supervisor]
     else
       []
