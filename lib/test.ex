@@ -7,12 +7,20 @@ defmodule TestC1 do
 
   def create(opts) do
     use Vizi.Tween
-    tween = Tween.move %{}, %{angle: 359}, in: sec(2)
+    tween = Tween.move %{}, %{color: 100}, in: sec(6), use: :sin_inout
+    tween1 = Tween.move %{}, %{angle: 359}, in: sec(2)
 
     __MODULE__
     |> Vizi.Node.create(opts)
     |> Vizi.Node.put_param(:cnt, 1)
-    |> Vizi.Node.animate(tween, loop: true, updater: fn node ->
+    |> Vizi.Node.animate(tween, loop: true, mode: :pingpong, updater: fn node ->
+      color = node.params.color
+      children = for n <- node.children do
+        Vizi.Node.put_param(n, :color, color + n.x)
+      end
+      %{node|children: children}
+    end)
+    |> Vizi.Node.animate(tween1, loop: true, updater: fn node ->
       angle = node.params.angle
       children = for n <- node.children do
         Vizi.Node.put_param(n, :angle, angle + n.x * n.x)
@@ -21,34 +29,14 @@ defmodule TestC1 do
     end)
   end
 
-  def init(node, ctx) do
-    bm = Bitmap.create(ctx, 500, 300)
-    Enum.each(0..(Bitmap.size(bm) - 1), fn n ->
-      Bitmap.put(bm, n, rem(n, 256), 255 - rem(n, 25), 0, 255)
-    end)
-    img = Image.from_bitmap(ctx, bm)
-    {:ok, Vizi.Node.put_params(node, %{
-      img: img,
-      bm: bm
-    })}
+  def init(node, _ctx) do
+    {:ok, node}
   end
 
   @tau 6.28318530718
 
-  def draw(params, width, height, ctx) do
-    img = params.img
-    paint = Paint.image_pattern(ctx, 0, 0, 500, 300, 0, img)
-
-    ctx
-    |> begin_path()
-    |> rect(0, 0, width, height)
-    |> fill_paint(paint)
-    |> fill()
-    |> rotate(1)
-
-#    Vizi.View.send_event(:update, nil)
-
-    {:ok, update_in(params.cnt, fn x -> if x == 255, do: 0, else: x + 1 end)}
+  def draw(_params, _width, _height, _ctx) do
+    :ok
   end
 
   def handle_event(%Events.Custom{type: :update}, node) do
@@ -56,20 +44,7 @@ defmodule TestC1 do
   end
 
   def handle_event(%Events.Button{type: :button_release}, node) do
-    use Vizi.Tween
-
-    node = Vizi.Node.add_task(node, fn params, _width, _height, ctx ->
-      bm = Bitmap.create(ctx, 500, 300)
-      offset1 = :rand.uniform(256)
-      offset2 = :rand.uniform(256)
-      Enum.each(0..(Bitmap.size(bm) - 1), fn n ->
-        Bitmap.put(bm, n, 255 - rem(offset1 + n, 25), rem(offset2 + n, 256), 128, 255)
-      end)
-      img = Image.from_bitmap(ctx, bm)
-
-      {:ok, %{params|bm: bm, img: img}}
-    end)
-
+    use Vizi.Tween 
 
     t = #if node.x < 200 do
       Tween.set(%{x: 100, y: 0, rotate: 0}, %{})
@@ -106,23 +81,34 @@ defmodule TestC2 do
   use Vizi.Node
   use Vizi.Canvas
 
+  @tau 6.28318530718
+
   def create(opts) do
+    use Vizi.Tween
+
+    tween = Tween.move(%{rotate: -@tau}, %{}, in: sec(12))
+
     __MODULE__
     |> Vizi.Node.create(opts)
     |> Vizi.Node.put_params(%{angle: 0, img: nil})
+    |> Vizi.Node.animate(tween, loop: true, updater: fn node ->
+      %{node|rotate: node.rotate + node.x}
+    end)
   end
 
   def draw(params, width, height, ctx) do
     ctx
+    |> global_alpha(0.03)
     |> begin_path()
     |> rect(0, 0, width, height)
-    |> fill_color(rgba(params.angle, 255, 255))
+    |> fill_color(rgba(params.color, 255, 255))
     |> fill()
     |> translate(50, 50)
     |> rotate(deg_to_rad(params.angle))
     |> translate(-50, -50)
+    |> global_alpha(0.2)
     |> begin_path()
-    |> rect(50, 40, 20,  20)
+    |> arc(50, 40, 20,  0, @tau, :ccw)
     |> fill_color(rgba(0, 0, 255))
     |> fill()
   end
@@ -185,9 +171,9 @@ defmodule T do
     {:ok, _pid} = Vizi.View.start(__MODULE__, nil, redraw_mode: :interval, spawn_opt: [priority: :high])
   end
 
-  def init(_args, _width, _height) do
-    n1 = TestC1.create(x: 100, y: 0, width: 500, height: 300, children: for n <- -100..400 do
-      TestC2.create(x: n, y: n, width: 100, height: 100, alpha: 0.05)
+  def init(_args, width, height) do
+    n1 = TestC1.create(x: 0, y: 0, width: width, height: height, children: for n <- -100..400 do
+      TestC2.create(x: n, y: n, width: 150, height: 100, alpha: 1)
     end)
     _n2 = TestC1.create(x: 100, y: 300, width: 500, height: 300, children: for n <- -100..400 do
       TestC2.create(x: n, y: n, width: 100, height: 100, alpha: 0.05)
