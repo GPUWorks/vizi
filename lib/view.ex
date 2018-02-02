@@ -9,7 +9,7 @@ defmodule Vizi.View do
             redraw_mode: :interval,
             identity_xform: nil,
             mod: nil, state: nil,
-            init_args: nil, suspended: false
+            init_args: nil, suspend: :off
 
   @type context :: <<>>
 
@@ -29,19 +29,22 @@ defmodule Vizi.View do
 
   @type options :: [GenServer.option | view_option]
 
+  @type suspend_state :: :off | :requested | :on
+
   @type t :: %Vizi.View{
     context: context,
     root: Vizi.Node.t,
+    width: integer,
+    height: integer,
     custom_events: [%Vizi.Events.Custom{}],
     redraw_mode: redraw_mode,
     identity_xform: Vizi.Canvas.Transform.t,
     mod: module, state: term,
-    init_args: term, suspended: boolean
+    init_args: term, suspend: suspend_state
   }
 
   @callback init(args :: term, width :: integer, height :: integer) ::
   {:ok, root, state} |
-  {:ok, root, state, timeout | :hibernate} |
   :ignore |
   {:stop, reason :: term} when root: Vizi.Node.t, state: term
 
@@ -202,7 +205,7 @@ defmodule Vizi.View do
 
   def suspend(server) do
     :ok = GenServer.call(server, :suspend)
-    :ok = GenServer.call(server, :wait_for_suspended)
+    :ok = GenServer.call(server, :wait_until_suspended)
     :sys.suspend(server)
   end
 
@@ -245,20 +248,31 @@ defmodule Vizi.View do
   end
 
   def handle_call(:suspend, _from, state) do
-    unless state.suspended do
-      NIF.suspend(state.context)
-    end
-    {:reply, :ok, %{state|suspended: true}}
-  end
-
-  def handle_call(:wait_for_suspended, _from, state) do
-    receive do
-      :vz_suspended ->
-        :ok
-      after 5_000 ->
-        raise "failed to suspend view thread"
+    state = case state.suspend do
+      :off ->
+        NIF.suspend(state.context)
+        %{state|suspend: :requested}
+      _ ->
+        state
     end
     {:reply, :ok, state}
+  end
+
+  def handle_call(:wait_until_suspended, _from, state) do
+    case state.suspend do
+      :requested ->
+        receive do
+          :vz_suspended ->
+            :ok
+          after 5_000 ->
+            raise "failed to suspend view thread"
+        end
+        {:reply, :ok, %{state|suspend: :on}}
+      :on ->
+        {:reply, :ok, state}
+      :off ->
+        {:reply, :error, state}
+    end
   end
 
   @doc false
@@ -280,30 +294,30 @@ defmodule Vizi.View do
   end
 
   def handle_cast(:resume, state) do
-    if state.suspended do
-      NIF.resume(state.context)
-      {:noreply, %{state|suspended: false}}
-    else
-      {:noreply, state}
+    case state.suspend do
+      :on ->
+        NIF.resume(state.context)
+        {:noreply, %{state|suspend: :off}}
+      _ ->
+        {:noreply, state}
     end
   end
 
   def handle_cast(:reinit, state) do
-    if state.suspended do
-      NIF.resume(state.context)
-      callback_terminate(:reload, state)
-      case callback_init(state.mod, state.init_args, state.width, state.height, state) do
-        {:ok, state} ->
-          {:noreply, %{state|suspended: false}}
-        {:ok, state, _timeout} ->
-          {:noreply, %{state|suspended: false}}
-        :ignore ->
-          {:stop, :normal, :error, state}
-        {:stop, reason} ->
-          {:stop, reason, :error, state}
-      end
-    else
-      {:noreply, state}
+    case state.suspend do
+      :on ->
+        callback_terminate(:reload, state)
+        NIF.resume(state.context)
+        case callback_init(state.mod, state.init_args, state.width, state.height, state) do
+          {:ok, state} ->
+            {:noreply, %{state|suspend: :off}}
+          :ignore ->
+            {:stop, :normal, state}
+          {:stop, reason} ->
+            {:stop, reason, state}
+        end
+      _ ->
+        {:noreply, state}
     end
   end
 
@@ -321,6 +335,10 @@ defmodule Vizi.View do
 
   def handle_info(:vz_shutdown, state) do
     {:stop, {:shutdown, :request_from_view}, state}
+  end
+
+  def handle_info(:vz_suspended, state) do
+    {:noreply, %{state|suspend: :on}}
   end
 
   def handle_info(msg, state) do
@@ -347,8 +365,6 @@ defmodule Vizi.View do
     case mod.init(args, width, height) do
       {:ok, root, mod_state} ->
         {:ok, %{state|root: root, state: mod_state}}
-      {:ok, root, mod_state, timeout} ->
-        {:ok, %{state|root: root, state: mod_state}, timeout}
       :ignore ->
         :ignore
       {:stop, reason} ->
@@ -386,8 +402,7 @@ defmodule Vizi.View do
       {:stop, reason, new_root, new_state} ->
         {:stop, reason, %{state|root: new_root, state: new_state}}
       bad_return ->
-      raise "bad return value from #{inspect state.mod}.handle_cast/3: #{inspect bad_return}"
-      bad_return
+        raise "bad return value from #{inspect state.mod}.handle_cast/3: #{inspect bad_return}"
       end
   end
 
