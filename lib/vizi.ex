@@ -10,13 +10,13 @@ defmodule Vizi do
 
   @spec start_view(Vizi.View.name(), module, Vizi.View.params(), Vizi.View.options()) ::
           Supervisor.on_start_child()
-  def start_view(name, mod, args \\ %{}, opts) do
+  def start_view(name, mod, params \\ %{}, opts) do
     name = {:via, Registry, {Registry.Vizi, name}}
     opts = Keyword.put(opts, :name, name)
 
     DynamicSupervisor.start_child(:vizi_view_sup, %{
       id: Vizi.View,
-      start: {Vizi.View, :start_link, [mod, args, opts]},
+      start: {Vizi.View, :start_link, [mod, params, opts]},
       restart: :transient
     })
   end
