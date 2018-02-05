@@ -5,11 +5,12 @@ defmodule SolarView do
   use Vizi.View
 
   def start do
-    Vizi.View.start(__MODULE__, nil, width: 300, height: 300)
+    Vizi.start_view(:solar_system, __MODULE__, width: 300, height: 300)
   end
 
-  def init(_args, _width, _height) do
-    {:ok, SolarNode.create(x: 0, y: 0, width: 300, height: 300), nil}
+  def init(view) do
+    root = SolarNode.new(width: view.width, height: view.height)
+    {:ok, Vizi.View.put_root(view, root)}
   end
 end
 
@@ -19,8 +20,8 @@ defmodule SolarNode do
 
   @tau 6.28318530718
 
-  def create(opts) do
-    Vizi.Node.create(__MODULE__, opts)
+  def new(opts) do
+    Vizi.Node.new(__MODULE__, opts)
   end
 
   def init(node, ctx) do
@@ -31,9 +32,9 @@ defmodule SolarNode do
 
     {:ok, node
     |> Vizi.Node.put_params(%{
-      sun: Image.create(ctx, "examples/Canvas_sun.png"),
-      moon: Image.create(ctx, "examples/Canvas_moon.png"),
-      earth: Image.create(ctx, "examples/Canvas_earth.png")
+      sun: Image.from_file(ctx, "examples/Canvas_sun.png"),
+      moon: Image.from_file(ctx, "examples/Canvas_moon.png"),
+      earth: Image.from_file(ctx, "examples/Canvas_earth.png")
     })
     |> Vizi.Node.animate(earth_tween, loop: true)
     |> Vizi.Node.animate(moon_tween, loop: true)}

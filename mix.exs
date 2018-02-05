@@ -10,6 +10,7 @@ defmodule Vizi.Mixfile do
       deps: deps(),
       compilers: [:make, :elixir, :app], # Add the make compiler
       aliases: aliases(), # Configure aliases
+      dialyzer: [plt_add_deps: :app_tree, plt_add_apps: [:mix]],
 
       # Docs
       name: "Vizi",
@@ -22,7 +23,7 @@ defmodule Vizi.Mixfile do
   def application do
     [
       mod: {Vizi, []},
-      extra_applications: [:logger]
+      extra_applications: [:logger, :fs]
     ]
   end
 

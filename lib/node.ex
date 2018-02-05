@@ -113,8 +113,8 @@ defmodule Vizi.Node do
 
   # Public interface
 
-  @spec create(mod :: module, opts :: options) :: t
-  def create(mod, opts \\ []) do
+  @spec new(mod :: module, opts :: options) :: t
+  def new(mod, opts \\ []) do
     %Node{
       tags: Keyword.get(opts, :tags, []),
       x: Keyword.get(opts, :x, 0.0),
@@ -435,7 +435,7 @@ defmodule Vizi.Node do
       {a, p, {{step + 1, props}, aprops}}
     end
   end
-  defp step_anim({nil, {_tag, nil, _updater, _rest}}), do: :done
+  defp step_anim({nil, {_tag, nil, _update_fun, _rest}}), do: :done
   defp step_anim({nil, aprops}) do
     {anim, aprops} = aprops
     |> put_elem(3, elem(aprops, 1))
@@ -495,9 +495,9 @@ defmodule Vizi.Node do
 
     tag = Keyword.get(opts, :tag)
     loop = if Keyword.get(opts, :loop), do: [anim | rest]
-    updater = Keyword.get(opts, :updater)
+    update_fun = Keyword.get(opts, :update)
 
-    {anim, {tag, loop, updater, rest}}
+    {anim, {tag, loop, update_fun, rest}}
   end
 
   defp build_anim(%Tween{attrs: attrs, params: params, length: length, easing: easing, next: next}, node) do

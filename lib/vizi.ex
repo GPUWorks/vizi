@@ -9,8 +9,10 @@ defmodule Vizi do
     Application.ensure_all_started(:vizi)
   end
 
-  @spec start_view(module, term, Vizi.View.options) :: Supervisor.on_start_child()
-  def start_view(mod, args, opts) do
+  @spec start_view(Vizi.View.name, module, Vizi.View.params, Vizi.View.options) :: Supervisor.on_start_child()
+  def start_view(name, mod, args \\ %{}, opts) do
+    name = {:via, Registry, {Registry.Vizi, name}}
+    opts = Keyword.put(opts, :name, name)
     DynamicSupervisor.start_child(:vizi_view_sup, %{
       id: Vizi.View,
       start: {Vizi.View, :start_link, [mod, args, opts]},
@@ -50,7 +52,9 @@ defmodule Vizi do
     end
 
     children = [
-      {DynamicSupervisor, [name: :vizi_view_sup, strategy: :one_for_one]} | children
+      {Registry, keys: :unique, name: Registry.Vizi},
+      {DynamicSupervisor, [name: :vizi_view_sup, strategy: :one_for_one]}
+      | children
     ]
 
     Supervisor.start_link(children, strategy: :one_for_one, name: :vizi_sup)
