@@ -1,18 +1,19 @@
 defmodule Vizi do
   use Application
 
-
   # Public API
 
-  @spec start() :: {:ok, [Application.app]} | {:error, {Application.app, term}}
+  @spec start() :: {:ok, [Application.app()]} | {:error, {Application.app(), term}}
   def start do
     Application.ensure_all_started(:vizi)
   end
 
-  @spec start_view(Vizi.View.name, module, Vizi.View.params, Vizi.View.options) :: Supervisor.on_start_child()
+  @spec start_view(Vizi.View.name(), module, Vizi.View.params(), Vizi.View.options()) ::
+          Supervisor.on_start_child()
   def start_view(name, mod, args \\ %{}, opts) do
     name = {:via, Registry, {Registry.Vizi, name}}
     opts = Keyword.put(opts, :name, name)
+
     DynamicSupervisor.start_child(:vizi_view_sup, %{
       id: Vizi.View,
       start: {Vizi.View, :start_link, [mod, args, opts]},
@@ -22,11 +23,12 @@ defmodule Vizi do
 
   @spec reload() :: :ok
   def reload do
-    resume_fun = if Application.get_env(:vizi, :reinit_on_reload, true) do
-      &Vizi.View.reinit_and_resume/1
-    else
-      &Vizi.View.resume/1
-    end
+    resume_fun =
+      if Application.get_env(:vizi, :reinit_on_reload, true) do
+        &Vizi.View.reinit_and_resume/1
+      else
+        &Vizi.View.resume/1
+      end
 
     pids = get_view_pids()
 
@@ -41,15 +43,15 @@ defmodule Vizi do
     :ok
   end
 
-
   # Application implementation
 
   def start(_type, _args) do
-    children = if Application.get_env(:vizi, :live_reload, false) do
-      [Vizi.Reloader.Supervisor]
-    else
-      []
-    end
+    children =
+      if Application.get_env(:vizi, :live_reload, false) do
+        [Vizi.Reloader.Supervisor]
+      else
+        []
+      end
 
     children = [
       {Registry, keys: :unique, name: Registry.Vizi},
@@ -59,7 +61,6 @@ defmodule Vizi do
 
     Supervisor.start_link(children, strategy: :one_for_one, name: :vizi_sup)
   end
-
 
   # Internal functions
 

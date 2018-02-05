@@ -7,15 +7,14 @@ defmodule Vizi.View do
   }
 
   @compile {:inline,
-    put_root: 2,
-    update_root: 2,
-    put_param: 3,
-    put_params: 2,
-    update_param: 4,
-    update_param!: 3,
-    send_event: 2,
-    redraw: 0
-  }
+            put_root: 2,
+            update_root: 2,
+            put_param: 3,
+            put_params: 2,
+            update_param: 4,
+            update_param!: 3,
+            send_event: 2,
+            redraw: 0}
 
   defstruct name: nil,
             context: nil,
@@ -45,70 +44,72 @@ defmodule Vizi.View do
   @type updates :: [{atom, (term -> term)}]
 
   @type t :: %View{
-    name: name,
-    context: context,
-    root: Node.t,
-    width: integer,
-    height: integer,
-    custom_events: [%Events.Custom{}],
-    redraw_mode: redraw_mode,
-    identity_xform: Canvas.Transform.t,
-    mod: module,
-    params: params,
-    init_params: term,
-    suspend: suspend_state
-  }
+          name: name,
+          context: context,
+          root: Node.t(),
+          width: integer,
+          height: integer,
+          custom_events: [%Events.Custom{}],
+          redraw_mode: redraw_mode,
+          identity_xform: Canvas.Transform.t(),
+          mod: module,
+          params: params,
+          init_params: term,
+          suspend: suspend_state
+        }
 
   @callback init(t) ::
-  {:ok, t} |
-  :ignore |
-  {:stop, reason :: term}
+              {:ok, t}
+              | :ignore
+              | {:stop, reason :: term}
 
   @callback handle_event(event :: term, t) ::
-  :cont | :done |
-  {:cont, t} |
-  {:done, t}
+              :cont
+              | :done
+              | {:cont, t}
+              | {:done, t}
 
   @callback handle_call(request :: term, from :: term, t) ::
-  {:reply, reply, t} |
-  {:reply, reply, t, timeout | :hibernate} |
-  {:noreply, t} |
-  {:noreply, t, timeout | :hibernate} |
-  {:stop, reason, reply, t} |
-  {:stop, reason, t} when reply: term, reason: term
+              {:reply, reply, t}
+              | {:reply, reply, t, timeout | :hibernate}
+              | {:noreply, t}
+              | {:noreply, t, timeout | :hibernate}
+              | {:stop, reason, reply, t}
+              | {:stop, reason, t}
+            when reply: term, reason: term
 
   @callback handle_cast(request :: term, t) ::
-  {:noreply, t} |
-  {:noreply, t, timeout | :hibernate} |
-  {:stop, reason :: term, t}
+              {:noreply, t}
+              | {:noreply, t, timeout | :hibernate}
+              | {:stop, reason :: term, t}
 
   @callback handle_info(msg :: :timeout | term, t) ::
-  {:noreply, t} |
-  {:noreply, t, timeout | :hibernate} |
-  {:stop, reason :: term, t}
+              {:noreply, t}
+              | {:noreply, t, timeout | :hibernate}
+              | {:stop, reason :: term, t}
 
-  @callback terminate(reason, t) ::
-  term when reason: :normal | :shutdown | {:shutdown, term} | term
+  @callback terminate(reason, t) :: term
+            when reason: :normal | :shutdown | {:shutdown, term} | term
 
   @callback code_change(old_vsn, t, extra :: term) ::
-  {:ok, t} |
-  {:error, reason :: term} when old_vsn: term | {:down, term}
+              {:ok, t}
+              | {:error, reason :: term}
+            when old_vsn: term | {:down, term}
 
   @type option ::
-    {:title, String.t} |
-    {:width, integer} |
-    {:height, integer} |
-    {:min_width, integer} |
-    {:min_height, integer} |
-    {:parent, context} |
-    {:resizable, boolean} |
-    {:redraw_mode, redraw_mode} |
-    {:frame_rate, integer} |
-    {:background_color, Canvas.Color.t} |
-    {:pixel_ratio, float}
+          {:title, String.t()}
+          | {:width, integer}
+          | {:height, integer}
+          | {:min_width, integer}
+          | {:min_height, integer}
+          | {:parent, context}
+          | {:resizable, boolean}
+          | {:redraw_mode, redraw_mode}
+          | {:frame_rate, integer}
+          | {:background_color, Canvas.Color.t()}
+          | {:pixel_ratio, float}
 
-  @type options :: [GenServer.option | option]
-
+  @type options :: [GenServer.option() | option]
 
   @doc false
   defmacro __using__(_) do
@@ -124,14 +125,17 @@ defmodule Vizi.View do
       def handle_call(msg, _from, view) do
         proc =
           case Process.info(self(), :registered_name) do
-            {_, []}   -> self()
+            {_, []} -> self()
             {_, name} -> name
           end
 
         # We do this to trick Dialyzer to not complain about non-local returns.
         case :erlang.phash2(1, 1) do
-          0 -> raise "attempted to call Vizi.View #{inspect proc} but no handle_call/3 clause was provided"
-          1 -> {:stop, {:bad_call, msg}, view}
+          0 ->
+            raise "attempted to call Vizi.View #{inspect(proc)} but no handle_call/3 clause was provided"
+
+          1 ->
+            {:stop, {:bad_call, msg}, view}
         end
       end
 
@@ -139,11 +143,16 @@ defmodule Vizi.View do
       def handle_info(msg, view) do
         proc =
           case Process.info(self(), :registered_name) do
-            {_, []}   -> self()
+            {_, []} -> self()
             {_, name} -> name
           end
-        :error_logger.warning_msg('~p ~p received unexpected message in handle_info/2: ~p~n',
-                                  [__MODULE__, proc, msg])
+
+        :error_logger.warning_msg('~p ~p received unexpected message in handle_info/2: ~p~n', [
+          __MODULE__,
+          proc,
+          msg
+        ])
+
         {:noreply, view}
       end
 
@@ -151,14 +160,17 @@ defmodule Vizi.View do
       def handle_cast(msg, view) do
         proc =
           case Process.info(self(), :registered_name) do
-            {_, []}   -> self()
+            {_, []} -> self()
             {_, name} -> name
           end
 
         # We do this to trick Dialyzer to not complain about non-local returns.
         case :erlang.phash2(1, 1) do
-          0 -> raise "attempted to cast Vizi.View #{inspect proc} but no handle_cast/2 clause was provided"
-          1 -> {:stop, {:bad_cast, msg}, view}
+          0 ->
+            raise "attempted to cast Vizi.View #{inspect(proc)} but no handle_cast/2 clause was provided"
+
+          1 ->
+            {:stop, {:bad_cast, msg}, view}
         end
       end
 
@@ -172,15 +184,18 @@ defmodule Vizi.View do
         {:ok, view}
       end
 
-      defoverridable [handle_event: 2, handle_call: 3, handle_info: 2,
-                      handle_cast: 2, terminate: 2, code_change: 3]
+      defoverridable handle_event: 2,
+                     handle_call: 3,
+                     handle_info: 2,
+                     handle_cast: 2,
+                     terminate: 2,
+                     code_change: 3
     end
   end
 
-
   # Server interface
 
-  @spec start_link(mod :: module, args :: term, opts :: options) :: GenServer.on_start
+  @spec start_link(mod :: module, args :: term, opts :: options) :: GenServer.on_start()
   def start_link(mod, args, opts \\ []) do
     {server_opts, view_opts} = Keyword.split(opts, [:name, :timeout, :debug, :spawn_opt])
     GenServer.start_link(View.Server, {mod, args, view_opts}, server_opts)
@@ -198,7 +213,7 @@ defmodule Vizi.View do
 
   @spec send_event(server, type :: atom, params :: term) :: :ok
   def send_event(server, type, params) do
-    {mega, sec, micro} = :os.timestamp
+    {mega, sec, micro} = :os.timestamp()
     time = (mega * 1_000_000 + sec) * 1000 + div(micro, 1000)
     GenServer.cast(get_server(server), %Events.Custom{type: type, params: params, time: time})
   end
@@ -235,45 +250,46 @@ defmodule Vizi.View do
     :sys.resume(server)
   end
 
-
   # View interface
 
-  @spec put_root(t, Node.t) :: t
+  @spec put_root(t, Node.t()) :: t
   def put_root(view, node) do
-    %View{view|root: node}
+    %View{view | root: node}
   end
 
-  @spec update_root(t, (Node.t | nil -> Node.t)) :: t
+  @spec update_root(t, (Node.t() | nil -> Node.t())) :: t
   def update_root(view, fun) do
-    %View{view|root: fun.(view.root)}
+    %View{view | root: fun.(view.root)}
   end
 
   @spec put_param(t, key :: atom, value :: term) :: t
   def put_param(view, key, value) do
-    %View{view|params: Map.put(view.params, key, value)}
+    %View{view | params: Map.put(view.params, key, value)}
   end
 
   @spec put_params(t, params) :: t
   def put_params(view, params) do
-    %View{view|params: Map.merge(view.params, params)}
+    %View{view | params: Map.merge(view.params, params)}
   end
 
   @spec update_param(t, key :: atom, initial :: term, fun :: (term -> term)) :: t
   def update_param(view, key, initial, fun) do
-    %View{view|params: Map.update(view.params, key, initial, fun)}
+    %View{view | params: Map.update(view.params, key, initial, fun)}
   end
 
   @spec update_param!(t, key :: atom, fun :: (term -> term)) :: t
   def update_param!(view, key, fun) do
-    %View{view|params: Map.update!(view.params, key, fun)}
+    %View{view | params: Map.update!(view.params, key, fun)}
   end
 
   @spec update_params!(t, updates) :: t
   def update_params!(view, updates) do
-    params = Enum.reduce(updates, view.params, fn {key, fun}, acc ->
-      Map.update!(acc, key, fun)
-    end)
-    %View{view|params: params}
+    params =
+      Enum.reduce(updates, view.params, fn {key, fun}, acc ->
+        Map.update!(acc, key, fun)
+      end)
+
+    %View{view | params: params}
   end
 
   @spec send_event(type :: atom, params :: term) :: :ok
@@ -286,12 +302,12 @@ defmodule Vizi.View do
     GenServer.cast(self(), :vz_redraw)
   end
 
-
   # Internal functions
 
   defp get_server(pid) when is_pid(pid) do
     pid
   end
+
   defp get_server(name) do
     {:via, Registry, {Registry.Vizi, name}}
   end

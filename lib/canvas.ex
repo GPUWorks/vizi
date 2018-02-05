@@ -73,37 +73,53 @@ defmodule Vizi.Canvas do
   @doc """
   Clears the current path and sub-paths.
   """
-  @spec begin_path(ctx :: Vizi.View.context) :: Vizi.View.context
+  @spec begin_path(ctx :: Vizi.View.context()) :: Vizi.View.context()
   defdelegate begin_path(ctx), to: NIF
 
   @doc """
   Clears the current path and sub-paths.
   """
-  @spec move_to(ctx :: Vizi.View.context, x :: number, y :: number) :: Vizi.View.context
+  @spec move_to(ctx :: Vizi.View.context(), x :: number, y :: number) :: Vizi.View.context()
   defdelegate move_to(ctx, x, y), to: NIF
 
   @doc """
   Adds line segment from the last point in the path to the specified point.
   """
-  @spec line_to(ctx :: Vizi.View.context, x :: number, y :: number) :: Vizi.View.context
+  @spec line_to(ctx :: Vizi.View.context(), x :: number, y :: number) :: Vizi.View.context()
   defdelegate line_to(ctx, x, y), to: NIF
 
   @doc """
   Adds cubic bezier segment from last point in the path via two control points to the specified point.
   """
-  @spec bezier_to(ctx :: Vizi.View.context, cx1 :: number, cy1 :: number, cx2 :: number, cy2 :: number, x :: number, y :: number) :: Vizi.View.context
+  @spec bezier_to(
+          ctx :: Vizi.View.context(),
+          cx1 :: number,
+          cy1 :: number,
+          cx2 :: number,
+          cy2 :: number,
+          x :: number,
+          y :: number
+        ) :: Vizi.View.context()
   defdelegate bezier_to(ctx, cx1, cy1, cx2, cy2, x, y), to: NIF
 
   @doc """
   Adds quadratic bezier segment from last point in the path via a control point to the specified point.
   """
-  @spec quad_to(ctx :: Vizi.View.context, cx :: number, cy :: number, x :: number, y :: number) :: Vizi.View.context
+  @spec quad_to(ctx :: Vizi.View.context(), cx :: number, cy :: number, x :: number, y :: number) ::
+          Vizi.View.context()
   defdelegate quad_to(ctx, cx, cy, x, y), to: NIF
 
   @doc """
   Adds an arc segment at the corner defined by the last path point, and two specified points.
   """
-  @spec arc_to(ctx :: Vizi.View.context, x1 :: number, y1 :: number, x2 :: number, y2 :: number, radius :: number) :: Vizi.View.context
+  @spec arc_to(
+          ctx :: Vizi.View.context(),
+          x1 :: number,
+          y1 :: number,
+          x2 :: number,
+          y2 :: number,
+          radius :: number
+        ) :: Vizi.View.context()
   defdelegate arc_to(ctx, x1, y1, x2, y2, radius), to: NIF
 
   @doc """
@@ -128,7 +144,13 @@ defmodule Vizi.Canvas do
   @doc """
   Creates new rectangle shaped sub-path.
   """
-  @spec rect(ctx :: Vizi.View.context, x :: number, y :: number, height :: number, width :: number) :: Vizi.View.context
+  @spec rect(
+          ctx :: Vizi.View.context(),
+          x :: number,
+          y :: number,
+          height :: number,
+          width :: number
+        ) :: Vizi.View.context()
   defdelegate rect(ctx, x, y, width, height), to: NIF
 
   @doc """
@@ -139,7 +161,18 @@ defmodule Vizi.Canvas do
   @doc """
   Creates new rounded rectangle shaped sub-path with varying radii for each corner.
   """
-  defdelegate rounded_rect_varying(ctx, x, y, width, height, rad_top_left, rad_top_right, rad_bot_right, rad_bot_left), to: NIF
+  defdelegate rounded_rect_varying(
+                ctx,
+                x,
+                y,
+                width,
+                height,
+                rad_top_left,
+                rad_top_right,
+                rad_bot_right,
+                rad_bot_left
+              ),
+              to: NIF
 
   @doc """
   Creates new ellipse shaped sub-path.
@@ -166,7 +199,7 @@ defmodule Vizi.Canvas do
   """
   def text(ctx, x, y, string) do
     NIF.text(ctx, x, y, string)
-    NIF.get_reply
+    NIF.get_reply()
   end
 
   @doc """
@@ -216,7 +249,7 @@ defmodule Vizi.Canvas do
   """
   def current_transform(ctx) do
     NIF.current_transform(ctx)
-    NIF.get_reply
+    NIF.get_reply()
   end
 
   @doc """
@@ -295,7 +328,6 @@ defmodule Vizi.Canvas do
   """
   defdelegate draw_image(ctx, x, y, width, height, image, opts \\ []), to: NIF
 
-
   @doc """
   Sets the miter limit of the stroke style.
   Miter limit controls when a sharp corner is beveled.
@@ -372,7 +404,8 @@ defmodule Vizi.Canvas do
   @doc """
   Sets the composite operation with custom pixel arithmetic for RGB and alpha components separately. Accepts the same options as `global_composite_blend_func/3`.
   """
-  defdelegate global_composite_blend_func_separate(ctx, src_rgb, dst_rgba, src_alpha, dst_alpha), to: NIF
+  defdelegate global_composite_blend_func_separate(ctx, src_rgb, dst_rgba, src_alpha, dst_alpha),
+    to: NIF
 
   @doc """
   Sets the transparency applied to all rendered shapes.

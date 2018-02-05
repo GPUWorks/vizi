@@ -23,7 +23,7 @@ defmodule Vizi.Canvas.Image do
   """
   def from_file(ctx, file_path, flags \\ []) do
     NIF.create_image(ctx, file_path, flags)
-    NIF.get_reply
+    NIF.get_reply()
   end
 
   @doc """
@@ -32,7 +32,7 @@ defmodule Vizi.Canvas.Image do
   """
   def from_memory(ctx, data, flags \\ []) do
     NIF.create_image_mem(ctx, data, flags)
-    NIF.get_reply
+    NIF.get_reply()
   end
 
   @doc """
@@ -41,7 +41,7 @@ defmodule Vizi.Canvas.Image do
   """
   def from_rgba(ctx, data, w, h, flags \\ []) do
     NIF.create_image_rgba(ctx, data, w, h, flags)
-    NIF.get_reply
+    NIF.get_reply()
   end
 
   @doc """
@@ -50,7 +50,7 @@ defmodule Vizi.Canvas.Image do
   """
   def from_bitmap(ctx, bitmap, flags \\ []) do
     NIF.create_image_bitmap(ctx, bitmap, flags)
-    NIF.get_reply
+    NIF.get_reply()
   end
 
   @doc """
@@ -68,7 +68,7 @@ defmodule Vizi.Canvas.Image do
   """
   def size(ctx, image) do
     NIF.image_size(ctx, image)
-    NIF.get_reply
+    NIF.get_reply()
   end
 
   @doc """

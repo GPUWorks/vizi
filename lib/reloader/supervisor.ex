@@ -16,6 +16,7 @@ defmodule Vizi.Reloader.Supervisor do
       },
       {Vizi.Reloader, @fs_watcher}
     ]
+
     Supervisor.init(children, strategy: :one_for_all)
   end
 end

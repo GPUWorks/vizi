@@ -38,7 +38,7 @@ defmodule Vizi.Canvas.Text do
   """
   def create_font(ctx, file_path) do
     NIF.create_font(ctx, file_path)
-    NIF.get_reply
+    NIF.get_reply()
   end
 
   @doc """
@@ -46,7 +46,7 @@ defmodule Vizi.Canvas.Text do
   """
   def find_font(ctx, file_path) do
     NIF.find_font(ctx, file_path)
-    NIF.get_reply
+    NIF.get_reply()
   end
 
   @doc """
@@ -61,7 +61,7 @@ defmodule Vizi.Canvas.Text do
   """
   def bounds(ctx, x, y, string) do
     NIF.text_bounds(ctx, x, y, string)
-    NIF.get_reply
+    NIF.get_reply()
   end
 
   @doc """
@@ -70,7 +70,7 @@ defmodule Vizi.Canvas.Text do
   """
   def box_bounds(ctx, x, y, break_row_width, string) do
     NIF.text_box_bounds(ctx, x, y, break_row_width, string)
-    NIF.get_reply
+    NIF.get_reply()
   end
 
   @doc """
@@ -79,7 +79,7 @@ defmodule Vizi.Canvas.Text do
   """
   def glyph_positions(ctx, x, y, string) do
     NIF.text_glyph_positions(ctx, x, y, string)
-    NIF.get_reply
+    NIF.get_reply()
   end
 
   @doc """
@@ -88,7 +88,7 @@ defmodule Vizi.Canvas.Text do
   """
   def metrics(ctx) do
     NIF.text_metrics(ctx)
-    NIF.get_reply
+    NIF.get_reply()
   end
 
   @doc """
@@ -98,6 +98,6 @@ defmodule Vizi.Canvas.Text do
   """
   def break_lines(ctx, break_row_width, string) do
     NIF.text_break_lines(ctx, break_row_width, string)
-    NIF.get_reply
+    NIF.get_reply()
   end
 end
