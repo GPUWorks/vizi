@@ -405,11 +405,11 @@ defmodule Vizi.Node do
     {Enum.reverse(els), events}
   end
 
-  defp maybe_handle_event(%Events.Custom{} = ev, {node, acc}) do
+  defp maybe_handle_event(%Events.Custom{} = ev, {%Node{initialized: true} = node, acc}) do
     handle_event(node, ev, acc)
   end
 
-  defp maybe_handle_event(%{type: type} = ev, {node, acc})
+  defp maybe_handle_event(%{type: type} = ev, {%Node{initialized: true} = node, acc})
        when type in ~w(button_press button_release key_press key_release motion scroll)a do
     inv_xform = NIF.transform_inverse(node.xform)
     {x, y} = NIF.transform_point(inv_xform, ev.abs_x, ev.abs_y)
