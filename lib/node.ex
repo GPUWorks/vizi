@@ -194,11 +194,9 @@ defmodule Vizi.Node do
         end
       end)
 
-    if put do
-      %Node{parent | children: Enum.reverse(children)}
-    else
-      parent
-    end
+    if put,
+      do: %Node{parent | children: Enum.reverse(children)},
+      else: parent
   end
 
   @spec remove(parent :: t, node :: t) :: t
@@ -240,11 +238,7 @@ defmodule Vizi.Node do
 
     children =
       for x <- children do
-        if Enum.all?(tags, &(&1 in x.tags)) do
-          fun.(x)
-        else
-          x
-        end
+        if Enum.all?(tags, &(&1 in x.tags)), do: fun.(x), else: x
       end
 
     %Node{parent | children: children}
@@ -256,11 +250,7 @@ defmodule Vizi.Node do
 
     children =
       for x <- children do
-        if Enum.any?(tags, &(&1 in x.tags)) do
-          fun.(x)
-        else
-          x
-        end
+        if Enum.any?(tags, &(&1 in x.tags)), do: fun.(x), else: x
       end
 
     %Node{parent | children: children}
@@ -311,11 +301,9 @@ defmodule Vizi.Node do
     replace = Keyword.get(opts, :replace, true)
 
     anims =
-      if is_nil(tag) do
-        node.animations ++ [anim]
-      else
-        ensure_uniq(node.animations, anim, tag, replace)
-      end
+      if is_nil(tag),
+        do: node.animations ++ [anim],
+        else: ensure_uniq(node.animations, anim, tag, replace)
 
     %Node{node | animations: anims}
   end
@@ -426,11 +414,9 @@ defmodule Vizi.Node do
     inv_xform = NIF.transform_inverse(node.xform)
     {x, y} = NIF.transform_point(inv_xform, ev.abs_x, ev.abs_y)
 
-    if touches?(node, x, y) do
-      handle_event(%{ev | x: x, y: y}, node, acc)
-    else
-      {node, [ev | acc]}
-    end
+    if touches?(node, x, y),
+      do: handle_event(%{ev | x: x, y: y}, node, acc),
+      else: {node, [ev | acc]}
   end
 
   defp maybe_handle_event(ev, {node, acc}) do
@@ -704,11 +690,9 @@ defmodule Vizi.Node do
   end
 
   defp put_new_value(list, key, value) do
-    if List.keymember?(list, key, 0) do
-      list
-    else
-      [{key, value, 0} | list]
-    end
+    if List.keymember?(list, key, 0),
+      do: list,
+      else: [{key, value, 0} | list]
   end
 
   defp ensure_uniq(anims, anim, tag, replace) do
