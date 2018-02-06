@@ -195,6 +195,21 @@ defmodule Vizi.View do
 
   # Server interface
 
+@doc """
+  Starts a new view
+
+  The first argument is the view's callback module. See `Vizi.View` for more info about its behaviour and callbacks.
+
+  The second argument is an optional params map that can be retrieved in every Vizi.View callback functions.
+
+  The last argument are the view's options, mostly used in the view's initalize phase. The following options are available:
+
+  * `:width` - The view's width in pixels (default: 800)
+  * `:height` - The view's height in pixels (default: 600)
+  * `:pixel_ratio` -
+
+
+  """
   @spec start(module, params, options) :: GenServer.on_start()
   def start(mod, params, opts \\ []) do
     {server_opts, view_opts} = Keyword.split(opts, [:name, :timeout, :debug, :spawn_opt])

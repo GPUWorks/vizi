@@ -241,19 +241,24 @@ defmodule BM do
     def init(node, ctx) do
       {:ok,
        Node.put_params(node, %{
-         img: Image.from_file(ctx, "examples/Canvas_earth.png"),
-         img2: Image.from_file(ctx, "examples/Canvas_earth.png")
+         bm: Bitmap.from_file(ctx, "/home/zambal/dev/vizi/examples/Canvas_sun.png")
        })}
     end
 
     def draw(params, _width, _height, ctx) do
+      Bitmap.update(params.bm, fn bin ->
+        for <<r::8, g::8, b::8, a::8 <- bin>>, into: <<>>, do: <<r + 1, g, b + 1, a>>
+      end)
+
+      img = Image.from_bitmap(ctx, params.bm)
+
       ctx
       |> global_composite_operation(:destination_atop)
-      |> draw_image(0, 50, 200, 200, params.img, alpha: 0.5, mode: :fill)
-      |> draw_image(100, 150, 200, 200, params.img, alpha: 0.5, mode: :fill)
+      |> draw_image(0, 50, 200, 200, img, alpha: 0.5, mode: :fill)
+      |> draw_image(100, 150, 200, 200, img, alpha: 0.5, mode: :fill)
       |> global_composite_operation(:destination_over)
-      |> draw_image(350, 50, 200, 200, params.img2, alpha: 0.5)
-      |> draw_image(450, 150, 200, 200, params.img2, alpha: 0.5)
+      |> draw_image(350, 50, 200, 200, img, alpha: 0.5)
+      |> draw_image(450, 150, 200, 200, img, alpha: 0.5)
     end
 
     """

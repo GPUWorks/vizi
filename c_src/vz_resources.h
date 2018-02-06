@@ -163,9 +163,11 @@ typedef struct VZbitmap {
 
 extern ErlNifResourceType *vz_bitmap_res;
 VZbitmap* vz_alloc_bitmap(int width, int height);
+VZbitmap* vz_alloc_bitmap_copy(int width, int height, const unsigned char *data);
 void vz_bitmap_dtor(ErlNifEnv *env, void *resource);
 unsigned vz_bitmap_size(const VZbitmap *bm);
 void vz_bitmap_put(VZbitmap *bm, unsigned ndx, unsigned char r, unsigned char g, unsigned char b, unsigned char a);
+bool vz_bitmap_get_bin(VZbitmap *bm, unsigned ndx, unsigned char *data, unsigned size);
 void vz_bitmap_put_bin(VZbitmap *bm, unsigned ndx, const unsigned char *rgba, int size);
 
 ERL_NIF_TERM vz_make_resource(ErlNifEnv* env, void* obj);

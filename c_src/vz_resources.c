@@ -234,6 +234,23 @@ VZbitmap* vz_alloc_bitmap(int width, int height) {
   return bm;
 }
 
+VZbitmap* vz_alloc_bitmap_copy(int width, int height, const unsigned char *data) {
+  VZbitmap *bm;
+
+  if((bm = enif_alloc_resource(vz_bitmap_res, sizeof(VZbitmap))) == NULL)
+      return NULL;
+
+  bm->buffer = (unsigned char*)enif_alloc(width * height * 4 * sizeof(unsigned char));
+  bm->width = width;
+  bm->height = height;
+  bm->pixel_size = width * height;
+  bm->byte_size = bm->pixel_size * 4 * sizeof(unsigned char);
+
+  memcpy(bm->buffer, data, bm->byte_size);
+
+  return bm;
+}
+
 void vz_bitmap_dtor(ErlNifEnv *env, void *resource) {
   VZbitmap *bm = (VZbitmap*)resource;
   enif_free(bm->buffer);
@@ -253,17 +270,18 @@ void vz_bitmap_put(VZbitmap *bm, unsigned ndx, unsigned char r, unsigned char g,
   }
 }
 
-/*
-void vz_bitmap_put(VZbitmap *bm, unsigned ndx, unsigned char r, unsigned char g, unsigned char b, unsigned char a) {
-  if(ndx < bm->pixel_size) {
-    ndx = ndx * 4;
-    bm->buffer[ndx]     = r;
-    bm->buffer[ndx + 1] = g;
-    bm->buffer[ndx + 2] = b;
-    bm->buffer[ndx + 3] = a;
+bool vz_bitmap_get_bin(VZbitmap *bm, unsigned ndx, unsigned char *data, unsigned size) {
+  ndx = ndx * 4;
+  if((ndx + size) <= bm->byte_size) {
+    memcpy(data, bm->buffer + ndx, size);
+    return true;
+  }
+  else {
+    return false;
   }
 }
-*/
+
+
 void vz_bitmap_put_bin(VZbitmap *bm, unsigned ndx, const unsigned char *rgba, int size) {
   ndx = ndx * 4;
   if((ndx + size) <= bm->byte_size) {

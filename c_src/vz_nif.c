@@ -5,6 +5,7 @@
 
 #include "pugl/pugl.h"
 #include "nanovg.h"
+#include "stb_image.h"
 
 #include <erl_nif.h>
 #include <string.h>
@@ -2404,7 +2405,7 @@ VZ_ASYNC_DECL(
   }
 );
 
-static ERL_NIF_TERM vz_create_bitmap(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) {
+static ERL_NIF_TERM vz_bitmap_new(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) {
   VZview *vz_view;
   unsigned width, height;
   VZbitmap *bm;
@@ -2419,6 +2420,30 @@ static ERL_NIF_TERM vz_create_bitmap(ErlNifEnv* env, int argc, const ERL_NIF_TER
   bm = vz_alloc_bitmap(width, height);
 
   return vz_make_managed_resource(env, bm, vz_view);
+}
+
+static ERL_NIF_TERM vz_bitmap_from_file(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) {
+  VZview *vz_view;
+  int width, height, num_channels, flags;
+  VZbitmap *bm;
+  unsigned char *data;
+  char file_path[VZ_MAX_STRING_LENGTH];
+
+  if(!(argc == 3 &&
+       enif_get_resource(env, argv[0], vz_view_res, (void**)&vz_view) &&
+       vz_copy_string(env, argv[1], file_path, VZ_MAX_STRING_LENGTH) &&
+       vz_handle_image_flags(env, argv[2], &flags))) {
+    return BADARG;
+  }
+
+  if((data = stbi_load(file_path, &width, &height, &num_channels, 4))) {
+    bm = vz_alloc_bitmap_copy(width, height, data);
+    stbi_image_free(data);
+    return vz_make_managed_resource(env, bm, vz_view);
+  }
+  else {
+    return BADARG;
+  }
 }
 
 static ERL_NIF_TERM vz_bm_size(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) {
@@ -2451,6 +2476,26 @@ static ERL_NIF_TERM vz_bm_put(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[
   return argv[0];
 }
 
+static ERL_NIF_TERM vz_bm_get_bin(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) {
+  VZbitmap *bm;
+  unsigned ndx, size, byte_size;
+  ErlNifBinary bin;
+
+  if(!(argc == 3 &&
+       enif_get_resource(env, argv[0], vz_bitmap_res, (void**)&bm) &&
+       enif_get_uint(env, argv[1], &ndx) &&
+       enif_get_uint(env, argv[2], &size))) {
+    return BADARG;
+  }
+
+  byte_size = size * 4u;
+  if(enif_alloc_binary(byte_size, &bin) &&
+     vz_bitmap_get_bin(bm, ndx, bin.data, byte_size)) {
+    return enif_make_binary(env, &bin);
+  }
+  else return BADARG;
+}
+
 static ERL_NIF_TERM vz_bm_put_bin(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) {
   VZbitmap *bm;
   unsigned ndx;
@@ -2469,6 +2514,7 @@ static ERL_NIF_TERM vz_bm_put_bin(ErlNifEnv* env, int argc, const ERL_NIF_TERM a
 
   return argv[0];
 }
+
 
 
 /*
@@ -2603,9 +2649,11 @@ static ErlNifFunc nif_funcs[] =
     {"text_glyph_positions", 4, vz_text_glyph_positions},
     {"text_metrics", 1, vz_text_metrics},
     {"text_break_lines", 3, vz_text_break_lines},
-    {"create_bitmap", 3, vz_create_bitmap},
+    {"bitmap_new", 3, vz_bitmap_new},
+    {"bitmap_from_file", 3, vz_bitmap_from_file},
     {"bitmap_size", 1, vz_bm_size},
     {"bitmap_put", 6, vz_bm_put},
+    {"bitmap_get_bin", 3, vz_bm_get_bin},
     {"bitmap_put_bin", 3, vz_bm_put_bin}
 };
 
