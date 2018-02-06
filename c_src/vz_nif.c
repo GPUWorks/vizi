@@ -2411,14 +2411,13 @@ static ERL_NIF_TERM vz_bitmap_from_file(ErlNifEnv* env, int argc, const ERL_NIF_
     return BADARG;
   }
 
-  if((data = stbi_load(file_path, &width, &height, &num_channels, 4))) {
-    bm = vz_alloc_bitmap_copy(width, height, data);
-    stbi_image_free(data);
-    return vz_make_managed_resource(env, bm, vz_view);
-  }
-  else {
+  if(!(data = stbi_load(file_path, &width, &height, &num_channels, 4)))
     return BADARG;
-  }
+
+  bm = vz_alloc_bitmap_copy(width, height, data);
+  stbi_image_free(data);
+
+  return vz_make_managed_resource(env, bm, vz_view);
 }
 
 static ERL_NIF_TERM vz_bm_size(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) {
