@@ -27,19 +27,10 @@ defmodule Vizi.Canvas.Image do
   end
 
   @doc """
-  Creates image by loading it from the specified binary.
-  Returns handle to the image.
-  """
-  def from_memory(ctx, data, flags \\ []) do
-    NIF.create_image_mem(ctx, data, flags)
-    NIF.get_reply()
-  end
-
-  @doc """
   Creates image from specified image data.
   Returns handle to the image.
   """
-  def from_rgba(ctx, data, w, h, flags \\ []) do
+  def from_binary(ctx, data, w, h, flags \\ []) do
     NIF.create_image_rgba(ctx, data, w, h, flags)
     NIF.get_reply()
   end
@@ -56,7 +47,7 @@ defmodule Vizi.Canvas.Image do
   @doc """
   Updates image data specified by image handle.
   """
-  defdelegate update_from_rgba(ctx, image, data), to: NIF, as: :update_image
+  defdelegate update_from_binary(ctx, image, data), to: NIF, as: :update_image
 
   @doc """
   Updates image data specified by image handle.
