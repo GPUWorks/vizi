@@ -59,7 +59,7 @@ defmodule Vizi.View do
         }
 
   @callback init(t) ::
-              {:ok, t}
+              {:ok, Node.t}
               | :ignore
               | {:stop, reason :: term}
 
@@ -195,7 +195,7 @@ defmodule Vizi.View do
 
   # Server interface
 
-@doc """
+  @doc """
   Starts a new view
 
   The first argument is the view's callback module. See `Vizi.View` for more info about its behaviour and callbacks.
@@ -206,7 +206,7 @@ defmodule Vizi.View do
 
   * `:width` - The view's width in pixels (default: 800)
   * `:height` - The view's height in pixels (default: 600)
-  * `:pixel_ratio` -
+  * `:pixel_ratio` - Device pixel ration allows to control the rendering on Hi-DPI devices.
 
 
   """

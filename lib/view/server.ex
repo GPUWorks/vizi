@@ -42,7 +42,7 @@ defmodule Vizi.View.Server do
         Process.put(:vz_frame_rate, frame_rate)
         Vizi.register()
 
-        mod.init(%View{
+        handle_init(mod, %View{
           context: ctx,
           redraw_mode: redraw_mode,
           mod: mod,
@@ -114,7 +114,7 @@ defmodule Vizi.View.Server do
         view.mod.terminate(:reload, view)
         NIF.resume(view.context)
 
-        case view.mod.init(%View{view | params: view.init_params}) do
+        case handle_init(view.mod, %View{view | params: view.init_params}) do
           {:ok, view} ->
             {:noreply, %{view | suspend: :off}}
 
@@ -189,6 +189,15 @@ defmodule Vizi.View.Server do
   end
 
   # Internal functions
+
+  defp handle_init(mod, view) do
+    case mod.init(view) do
+      {:ok, root} ->
+        {:ok, View.put_root(view, root)}
+      other ->
+        other
+    end
+  end
 
   defp handle_events(events, %View{root: root, context: ctx} = view) do
     {events, view} = Enum.reduce(events, {[], view}, &do_handle_event/2)

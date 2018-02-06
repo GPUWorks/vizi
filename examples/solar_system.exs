@@ -5,12 +5,11 @@ defmodule SolarView do
   use Vizi.View
 
   def start do
-    Vizi.View.start(__MODULE__, width: 300, height: 300)
+    Vizi.View.start(__MODULE__, %{}, width: 300, height: 300)
   end
 
   def init(view) do
-    root = SolarNode.new(width: view.width, height: view.height)
-    {:ok, Vizi.View.put_root(view, root)}
+    {:ok, SolarNode.new(width: view.width, height: view.height)}
   end
 end
 

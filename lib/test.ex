@@ -191,7 +191,7 @@ defmodule T do
   use View
 
   def s do
-    Vizi.View.start(__MODULE__, width: 800, height: 600)
+    Vizi.View.start(__MODULE__, %{}, width: 800, height: 600, pixel_ratio: 0.4)
   end
 
   def init(view) do
@@ -207,8 +207,7 @@ defmodule T do
           end
       )
 
-    root = Root.new(width: view.width, height: view.height, children: [n1])
-    {:ok, View.put_root(view, root)}
+    {:ok, Root.new(width: view.width, height: view.height, children: [n1])}
   end
 
   def bm_erl do
@@ -282,10 +281,10 @@ defmodule BM do
   end
 
   def start do
-    Vizi.View.start(__MODULE__, width: 650, height: 500)
+    Vizi.View.start(__MODULE__, %{}, width: 650, height: 500)
   end
 
   def init(view) do
-    {:ok, View.put_root(view, Root.new(width: view.width, height: view.height))}
+    {:ok, Root.new(width: view.width, height: view.height)}
   end
 end
