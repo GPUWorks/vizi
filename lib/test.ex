@@ -191,7 +191,7 @@ defmodule T do
   use View
 
   def s do
-    Vizi.View.start(__MODULE__, %{}, width: 800, height: 600, pixel_ratio: 0.4)
+    Vizi.View.start(__MODULE__, %{}, width: 800, height: 600, pixel_ratio: 1.0)
   end
 
   def init(view) do
@@ -206,8 +206,9 @@ defmodule T do
             TestC2.new(x: n, y: n, width: 150, height: 100, alpha: 1)
           end
       )
+    n2 = TestC3.new(x: 400, y: 300, width: 400, height: 100)
 
-    {:ok, Root.new(width: view.width, height: view.height, children: [n1])}
+    {:ok, Root.new(width: view.width, height: view.height, children: [n1, n2])}
   end
 
   def bm_erl do
@@ -238,8 +239,7 @@ defmodule BM do
     end
 
     def init(node, ctx) do
-      {bm, width, height} = Bitmap.from_file(ctx, "/home/zambal/dev/vizi/examples/Canvas_sun.png")
-      IO.inspect {width, height}
+      bm = Bitmap.from_binary(ctx, :binary.copy(<<128,128,128,255>>, 300 * 300), 300, 300)
       {:ok,
        Node.put_params(node, %{
          bm: bm
@@ -247,7 +247,7 @@ defmodule BM do
     end
 
     def draw(params, _width, _height, ctx) do
-      Bitmap.update(params.bm, fn bin ->
+      Bitmap.update_slice(params.bm, fn bin ->
         for <<r::8, g::8, b::8, a::8 <- bin>>, into: <<>>, do: <<r + 1, g, b + 1, a>>
       end)
 

@@ -7,18 +7,18 @@ defmodule Vizi.Canvas.Bitmap do
 
   defdelegate from_file(ctx, file_path), to: NIF, as: :bitmap_from_file
 
+  defdelegate from_binary(ctx, bin, width, height), to: NIF, as: :bitmap_from_binary
+
+  def to_binary(bm), do: NIF.bitmap_get_slice(bm, 0, 0)
+
   defdelegate size(bm), to: NIF, as: :bitmap_size
 
-  defdelegate put(bm, ndx, r, g, b, a), to: NIF, as: :bitmap_put
+  defdelegate get_slice(bm, offset \\ 0, length \\ 0), to: NIF, as: :bitmap_get_slice
 
-  defdelegate get_bin(bm, ndx, size), to: NIF, as: :bitmap_put_bin
+  defdelegate put_slice(bm, offset \\ 0, bin), to: NIF, as: :bitmap_put_slice
 
-  def update(bm, offset \\ 0, count \\ nil, fun) do
-    count = if is_nil(count), do: size(bm) - offset, else: count
-
-    bin = NIF.bitmap_get_bin(bm, offset, count)
-    NIF.bitmap_put_bin(bm, offset, fun.(bin))
+  def update_slice(bm, offset \\ 0, length \\ 0, fun) when is_function(fun, 1) do
+    bin = NIF.bitmap_get_slice(bm, offset, length)
+    NIF.bitmap_put_slice(bm, offset, fun.(bin))
   end
-
-  defdelegate put_bin(bm, ndx, rgba), to: NIF, as: :bitmap_put_bin
 end

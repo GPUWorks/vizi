@@ -230,13 +230,13 @@ defmodule Vizi.NIF do
 
   def bitmap_from_file(_ctx, _file_path), do: :erlang.nif_error(:vz_nif_lib_not_loaded)
 
+  def bitmap_from_binary(_ctx, _bin, _w, _h), do: :erlang.nif_error(:vz_nif_lib_not_loaded)
+
   def bitmap_size(_bm), do: :erlang.nif_error(:vz_nif_lib_not_loaded)
 
-  def bitmap_put(_bm, _ndx, _r, _g, _b, _a), do: :erlang.nif_error(:vz_nif_lib_not_loaded)
+  def bitmap_get_slice(_bm, _offset, _length), do: :erlang.nif_error(:vz_nif_lib_not_loaded)
 
-  def bitmap_get_bin(_bm, _ndx, _size), do: :erlang.nif_error(:vz_nif_lib_not_loaded)
-
-  def bitmap_put_bin(_bm, _ndx, _rgba), do: :erlang.nif_error(:vz_nif_lib_not_loaded)
+  def bitmap_put_slice(_bm, _offset, _bin), do: :erlang.nif_error(:vz_nif_lib_not_loaded)
 
   def get_reply do
     receive do

@@ -194,6 +194,7 @@ defmodule Vizi.View.Server do
     case mod.init(view) do
       {:ok, root} ->
         {:ok, View.put_root(view, root)}
+
       other ->
         other
     end

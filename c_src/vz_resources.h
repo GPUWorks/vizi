@@ -162,13 +162,11 @@ typedef struct VZbitmap {
 } VZbitmap;
 
 extern ErlNifResourceType *vz_bitmap_res;
-VZbitmap* vz_alloc_bitmap(int width, int height);
-VZbitmap* vz_alloc_bitmap_copy(int width, int height, const unsigned char *data);
-void vz_bitmap_dtor(ErlNifEnv *env, void *resource);
-unsigned vz_bitmap_size(const VZbitmap *bm);
-void vz_bitmap_put(VZbitmap *bm, unsigned ndx, unsigned char r, unsigned char g, unsigned char b, unsigned char a);
-bool vz_bitmap_get_bin(VZbitmap *bm, unsigned ndx, unsigned char *data, unsigned size);
-void vz_bitmap_put_bin(VZbitmap *bm, unsigned ndx, const unsigned char *rgba, int size);
+VZbitmap* vz_alloc_bm(int width, int height);
+VZbitmap* vz_alloc_bm_copy(const unsigned char *data, int width, int height);
+void vz_bm_dtor(ErlNifEnv *env, void *resource);
+bool vz_bm_get_slice(VZbitmap *bm, unsigned offset, unsigned length, unsigned char *data);
+bool vz_bm_put_slice(VZbitmap *bm, unsigned offset, unsigned length, const unsigned char *data);
 
 ERL_NIF_TERM vz_make_resource(ErlNifEnv* env, void* obj);
 ERL_NIF_TERM vz_make_managed_resource(ErlNifEnv* env, void* obj, VZview *vz_view);
