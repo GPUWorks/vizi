@@ -228,7 +228,7 @@ defmodule Vizi.NIF do
 
   def bitmap_new(_ctx, _width, _height), do: :erlang.nif_error(:vz_nif_lib_not_loaded)
 
-  def bitmap_from_file(_ctx, _file_path, _flags), do: :erlang.nif_error(:vz_nif_lib_not_loaded)
+  def bitmap_from_file(_ctx, _file_path), do: :erlang.nif_error(:vz_nif_lib_not_loaded)
 
   def bitmap_size(_bm), do: :erlang.nif_error(:vz_nif_lib_not_loaded)
 

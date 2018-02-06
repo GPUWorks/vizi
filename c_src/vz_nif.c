@@ -2399,15 +2399,14 @@ static ERL_NIF_TERM vz_bitmap_new(ErlNifEnv* env, int argc, const ERL_NIF_TERM a
 
 static ERL_NIF_TERM vz_bitmap_from_file(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) {
   VZview *vz_view;
-  int width, height, num_channels, flags;
+  int width, height, num_channels;
   VZbitmap *bm;
   unsigned char *data;
   char file_path[VZ_MAX_STRING_LENGTH];
 
-  if(!(argc == 3 &&
+  if(!(argc == 2 &&
        enif_get_resource(env, argv[0], vz_view_res, (void**)&vz_view) &&
-       vz_copy_string(env, argv[1], file_path, VZ_MAX_STRING_LENGTH) &&
-       vz_handle_image_flags(env, argv[2], &flags))) {
+       vz_copy_string(env, argv[1], file_path, VZ_MAX_STRING_LENGTH))) {
     return BADARG;
   }
 
@@ -2417,7 +2416,7 @@ static ERL_NIF_TERM vz_bitmap_from_file(ErlNifEnv* env, int argc, const ERL_NIF_
   bm = vz_alloc_bitmap_copy(width, height, data);
   stbi_image_free(data);
 
-  return vz_make_managed_resource(env, bm, vz_view);
+  return enif_make_tuple3(env, vz_make_managed_resource(env, bm, vz_view), enif_make_int(env, width), enif_make_int(env, height));
 }
 
 static ERL_NIF_TERM vz_bm_size(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) {
@@ -2623,7 +2622,7 @@ static ErlNifFunc nif_funcs[] =
     {"text_metrics", 1, vz_text_metrics},
     {"text_break_lines", 3, vz_text_break_lines},
     {"bitmap_new", 3, vz_bitmap_new},
-    {"bitmap_from_file", 3, vz_bitmap_from_file},
+    {"bitmap_from_file", 2, vz_bitmap_from_file},
     {"bitmap_size", 1, vz_bm_size},
     {"bitmap_put", 6, vz_bm_put},
     {"bitmap_get_bin", 3, vz_bm_get_bin},

@@ -5,7 +5,7 @@ defmodule Vizi.Canvas.Bitmap do
 
   defdelegate new(ctx, width, height), to: NIF, as: :bitmap_new
 
-  defdelegate from_file(ctx, file_path, flags \\ []), to: NIF, as: :bitmap_from_file
+  defdelegate from_file(ctx, file_path), to: NIF, as: :bitmap_from_file
 
   defdelegate size(bm), to: NIF, as: :bitmap_size
 

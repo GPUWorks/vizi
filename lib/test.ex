@@ -238,9 +238,11 @@ defmodule BM do
     end
 
     def init(node, ctx) do
+      {bm, width, height} = Bitmap.from_file(ctx, "/home/zambal/dev/vizi/examples/Canvas_sun.png")
+      IO.inspect {width, height}
       {:ok,
        Node.put_params(node, %{
-         bm: Bitmap.from_file(ctx, "/home/zambal/dev/vizi/examples/Canvas_sun.png")
+         bm: bm
        })}
     end
 
