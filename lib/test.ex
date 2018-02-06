@@ -190,8 +190,8 @@ defmodule T do
   @moduledoc false
   use View
 
-  def s(name \\ :test) do
-    Vizi.start_view(name, __MODULE__, redraw_mode: :interval, spawn_opt: [priority: :high])
+  def s do
+    Vizi.View.start(__MODULE__, width: 800, height: 600)
   end
 
   def init(view) do
@@ -207,7 +207,7 @@ defmodule T do
           end
       )
 
-    root = Root.new(width: 800, height: 600, children: [n1])
+    root = Root.new(width: view.width, height: view.height, children: [n1])
     {:ok, View.put_root(view, root)}
   end
 
@@ -277,7 +277,7 @@ defmodule BM do
   end
 
   def start do
-    Vizi.start_view(:bm, __MODULE__, width: 650, height: 500, redraw_mode: :interval)
+    Vizi.View.start(__MODULE__, width: 650, height: 500)
   end
 
   def init(view) do

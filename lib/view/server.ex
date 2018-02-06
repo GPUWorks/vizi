@@ -40,6 +40,7 @@ defmodule Vizi.View.Server do
         frame_rate = NIF.get_frame_rate(ctx)
 
         Process.put(:vz_frame_rate, frame_rate)
+        Vizi.register()
 
         mod.init(%View{
           context: ctx,

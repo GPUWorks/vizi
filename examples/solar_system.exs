@@ -5,7 +5,7 @@ defmodule SolarView do
   use Vizi.View
 
   def start do
-    Vizi.start_view(:solar_system, __MODULE__, width: 300, height: 300)
+    Vizi.View.start(__MODULE__, width: 300, height: 300)
   end
 
   def init(view) do

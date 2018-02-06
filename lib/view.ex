@@ -195,6 +195,12 @@ defmodule Vizi.View do
 
   # Server interface
 
+  @spec start(mod :: module, args :: term, opts :: options) :: GenServer.on_start()
+  def start(mod, args, opts \\ []) do
+    {server_opts, view_opts} = Keyword.split(opts, [:name, :timeout, :debug, :spawn_opt])
+    GenServer.start(View.Server, {mod, args, view_opts}, server_opts)
+  end
+
   @spec start_link(mod :: module, args :: term, opts :: options) :: GenServer.on_start()
   def start_link(mod, args, opts \\ []) do
     {server_opts, view_opts} = Keyword.split(opts, [:name, :timeout, :debug, :spawn_opt])
