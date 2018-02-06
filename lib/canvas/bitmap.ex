@@ -14,8 +14,7 @@ defmodule Vizi.Canvas.Bitmap do
   defdelegate get_bin(bm, ndx, size), to: NIF, as: :bitmap_put_bin
 
   def update(bm, offset \\ 0, count \\ nil, fun) do
-    count =
-      if is_nil(count), do: size(bm) - offset, else: count
+    count = if is_nil(count), do: size(bm) - offset, else: count
 
     bin = NIF.bitmap_get_bin(bm, offset, count)
     NIF.bitmap_put_bin(bm, offset, fun.(bin))
