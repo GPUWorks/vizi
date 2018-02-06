@@ -114,22 +114,20 @@ defmodule Vizi.NIF do
 
   def rad_to_deg(_rad), do: :erlang.nif_error(:vz_nif_lib_not_loaded)
 
-  def create_image(_ctx, _file_path, _flags), do: :erlang.nif_error(:vz_nif_lib_not_loaded)
+  def image_from_file(_ctx, _file_path, _flags), do: :erlang.nif_error(:vz_nif_lib_not_loaded)
 
-  def create_image_mem(_ctx, _data, _flags), do: :erlang.nif_error(:vz_nif_lib_not_loaded)
-
-  def create_image_rgba(_ctx, _data, _w, _h, _flags),
+  def image_from_binary(_ctx, _data, _w, _h, _flags),
     do: :erlang.nif_error(:vz_nif_lib_not_loaded)
 
-  def create_image_bitmap(_ctx, _bitmap, _flags), do: :erlang.nif_error(:vz_nif_lib_not_loaded)
+  def image_from_bitmap(_ctx, _bitmap, _flags), do: :erlang.nif_error(:vz_nif_lib_not_loaded)
 
-  def update_image(_ctx, _image, _data), do: :erlang.nif_error(:vz_nif_lib_not_loaded)
+  def image_update_from_binary(_ctx, _image, _data), do: :erlang.nif_error(:vz_nif_lib_not_loaded)
 
-  def update_image_bitmap(_ctx, _image, _bm), do: :erlang.nif_error(:vz_nif_lib_not_loaded)
+  def image_update_from_bitmap(_ctx, _image, _bm), do: :erlang.nif_error(:vz_nif_lib_not_loaded)
 
   def image_size(_ctx, _image), do: :erlang.nif_error(:vz_nif_lib_not_loaded)
 
-  def delete_image(_ctx, _image), do: :erlang.nif_error(:vz_nif_lib_not_loaded)
+  def image_delete(_ctx, _image), do: :erlang.nif_error(:vz_nif_lib_not_loaded)
 
   def linear_gradient(_ctx, _sx, _sy, _ex, _ey, _icol, _ocol),
     do: :erlang.nif_error(:vz_nif_lib_not_loaded)

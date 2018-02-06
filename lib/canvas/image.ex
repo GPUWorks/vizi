@@ -22,7 +22,7 @@ defmodule Vizi.Canvas.Image do
   Returns handle to the image.
   """
   def from_file(ctx, file_path, flags \\ []) do
-    NIF.create_image(ctx, file_path, flags)
+    NIF.image_from_file(ctx, file_path, flags)
     NIF.get_reply()
   end
 
@@ -31,7 +31,7 @@ defmodule Vizi.Canvas.Image do
   Returns handle to the image.
   """
   def from_binary(ctx, data, w, h, flags \\ []) do
-    NIF.create_image_rgba(ctx, data, w, h, flags)
+    NIF.image_from_binary(ctx, data, w, h, flags)
     NIF.get_reply()
   end
 
@@ -40,19 +40,19 @@ defmodule Vizi.Canvas.Image do
   Returns handle to the image.
   """
   def from_bitmap(ctx, bitmap, flags \\ []) do
-    NIF.create_image_bitmap(ctx, bitmap, flags)
+    NIF.image_from_bitmap(ctx, bitmap, flags)
     NIF.get_reply()
   end
 
   @doc """
   Updates image data specified by image handle.
   """
-  defdelegate update_from_binary(ctx, image, data), to: NIF, as: :update_image
+  defdelegate update_from_binary(ctx, image, data), to: NIF, as: :image_update_from_binary
 
   @doc """
   Updates image data specified by image handle.
   """
-  defdelegate update_from_bitmap(ctx, image, data), to: NIF, as: :update_image_bitmap
+  defdelegate update_from_bitmap(ctx, image, data), to: NIF, as: :image_update_from_bitmap
 
   @doc """
   Returns the dimensions of a created image int the form `{width, height}`.
@@ -65,5 +65,5 @@ defmodule Vizi.Canvas.Image do
   @doc """
   Deletes a created image.
   """
-  defdelegate delete(ctx, image), to: NIF, as: :delete_image
+  defdelegate delete(ctx, image), to: NIF, as: :image_delete
 end

@@ -1285,7 +1285,7 @@ static ERL_NIF_TERM vz_rad_to_deg(ErlNifEnv* env, int argc, const ERL_NIF_TERM a
 }
 
 VZ_ASYNC_DECL(
-  vz_create_image,
+  vz_image_from_file,
   {
     char file_path[VZ_MAX_STRING_LENGTH];
     int flags;
@@ -1310,32 +1310,7 @@ VZ_ASYNC_DECL(
 );
 
 VZ_ASYNC_DECL(
-  vz_create_image_mem,
-  {
-    ErlNifBinary bin;
-    int flags;
-  },
-  {
-    int handle;
-    VZimage *image;
-
-    handle = nvgCreateImageMem(ctx, args->flags, args->bin.data, args->bin.size);
-    if(handle == 0) VZ_HANDLER_SEND_BADARG;
-    image = vz_alloc_image(vz_view, handle);
-    VZ_HANDLER_SEND(vz_make_managed_resource(vz_view->msg_env, image, vz_view));
-  },
-  {
-    if(!(argc == 3 &&
-        enif_inspect_binary(env, argv[1], &args->bin) &&
-        vz_handle_image_flags(env, argv[2], &args->flags))) {
-      goto err;
-    }
-    execute = true;
-  }
-);
-
-VZ_ASYNC_DECL(
-  vz_create_image_rgba,
+  vz_image_from_binary,
   {
     ErlNifBinary bin;
     int flags;
@@ -1364,7 +1339,7 @@ VZ_ASYNC_DECL(
 );
 
 VZ_ASYNC_DECL(
-  vz_create_image_bitmap,
+  vz_image_from_bitmap,
   {
     VZbitmap *bm;
     int flags;
@@ -1390,7 +1365,7 @@ VZ_ASYNC_DECL(
 );
 
 VZ_ASYNC_DECL(
-  vz_update_image,
+  vz_image_update_from_binary,
   {
     ErlNifBinary bin;
     int handle;
@@ -1411,7 +1386,7 @@ VZ_ASYNC_DECL(
 );
 
 VZ_ASYNC_DECL(
-  vz_update_image_bitmap,
+  vz_image_update_from_bitmap,
   {
     VZbitmap *bm;
     int handle;
@@ -1456,7 +1431,7 @@ VZ_ASYNC_DECL(
 );
 
 VZ_ASYNC_DECL(
-  vz_delete_image,
+  vz_image_delete,
   {
     int handle;
   },
@@ -2602,14 +2577,13 @@ static ErlNifFunc nif_funcs[] =
     {"list_to_matrix", 1, vz_list_to_matrix},
     {"deg_to_rad", 1, vz_deg_to_rad},
     {"rad_to_deg", 1, vz_rad_to_deg},
-    {"create_image", 3, vz_create_image},
-    {"create_image_mem", 3, vz_create_image_mem},
-    {"create_image_rgba", 5, vz_create_image_rgba},
-    {"create_image_bitmap", 3, vz_create_image_bitmap},
-    {"update_image", 3, vz_update_image},
-    {"update_image_bitmap", 3, vz_update_image_bitmap},
+    {"image_from_file", 3, vz_image_from_file},
+    {"image_from_binary", 5, vz_image_from_binary},
+    {"image_from_bitmap", 3, vz_image_from_bitmap},
+    {"image_update_from_binary", 3, vz_image_update_from_binary},
+    {"image_update_from_bitmap", 3, vz_image_update_from_bitmap},
     {"image_size", 2, vz_image_size},
-    {"delete_image", 2, vz_delete_image},
+    {"image_delete", 2, vz_image_delete},
     {"linear_gradient", 7, vz_linear_gradient},
     {"box_gradient", 9, vz_box_gradient},
     {"radial_gradient", 7, vz_radial_gradient},
