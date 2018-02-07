@@ -2435,7 +2435,7 @@ static ERL_NIF_TERM vz_bitmap_from_binary(ErlNifEnv* env, int argc, const ERL_NI
     return BADARG;
   }
 
-  if((bin.size & 4) != 0)
+  if((bin.size & 3) != 0)
     return BADARG;
 
   bm = vz_alloc_bm_copy(bin.data, width, height);
