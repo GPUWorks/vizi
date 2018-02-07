@@ -2494,7 +2494,7 @@ static ERL_NIF_TERM vz_bitmap_put_slice(ErlNifEnv* env, int argc, const ERL_NIF_
 
   offset *= 4;
 
-  if(!((bin.size & 4) == 0 &&
+  if(!((bin.size & 3) == 0 &&
        vz_bm_put_slice(bm, offset, bin.size, (unsigned char*)bin.data)))
     return BADARG;
 
