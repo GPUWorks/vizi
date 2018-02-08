@@ -36,7 +36,7 @@ defmodule Vizi.View.Server do
         wait_until_initialized(ctx)
 
         xform = Canvas.Transform.identity(ctx)
-        redraw_mode = Keyword.get(opts, :redraw_mode, :manual)
+        redraw_mode = Keyword.get(opts, :redraw_mode, :interval)
         frame_rate = NIF.get_frame_rate(ctx)
 
         Process.put(:vz_frame_rate, frame_rate)
