@@ -267,6 +267,8 @@ static int vz_handle_create_view_opts(ErlNifEnv *env, ERL_NIF_TERM opts, VZview*
 
   if(vz_view->frame_rate == VZ_VSYNC)
     vz_view->vsync = true;
+  else
+    vz_view->vsync = false;
 
   vz_view->init_width = vz_view->width;
   vz_view->init_height = vz_view->height;
