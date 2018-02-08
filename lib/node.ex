@@ -17,7 +17,7 @@ defmodule Vizi.Node do
             params: %{},
             initialized: false,
             animations: [],
-            tasks: [],
+            updates: [],
             xform: nil
 
   @type t :: %Node{
@@ -37,7 +37,7 @@ defmodule Vizi.Node do
           params: params,
           initialized: boolean,
           animations: [tuple],
-          tasks: [task_fun],
+          updates: [task_fun],
           xform: Vizi.Canvas.Transform.t() | nil
         }
 
@@ -319,9 +319,9 @@ defmodule Vizi.Node do
     %Node{node | animations: []}
   end
 
-  @spec add_task(node :: t, task_fun) :: t
-  def add_task(node, fun) do
-    %Node{node | tasks: node.tasks ++ [fun]}
+  @spec add_update(node :: t, task_fun) :: t
+  def add_update(node, fun) do
+    %Node{node | updates: node.updates ++ [fun]}
   end
 
   # Internals
@@ -341,7 +341,7 @@ defmodule Vizi.Node do
       node =
       node
       |> maybe_init(ctx)
-      |> maybe_execute_tasks(ctx)
+      |> maybe_execute_updates(ctx)
       |> step_animations()
 
     NIF.setup_node(ctx, parent_xform, node)
@@ -367,13 +367,13 @@ defmodule Vizi.Node do
 
   defp maybe_init(node, _ctx), do: node
 
-  defp maybe_execute_tasks(%Node{tasks: []} = node, _ctx) do
+  defp maybe_execute_updates(%Node{updates: []} = node, _ctx) do
     node
   end
 
-  defp maybe_execute_tasks(%Node{width: width, height: height, tasks: tasks} = node, ctx) do
+  defp maybe_execute_updates(%Node{width: width, height: height, updates: updates} = node, ctx) do
     params =
-      Enum.reduce(tasks, node.params, fn task, acc ->
+      Enum.reduce(updates, node.params, fn task, acc ->
         case task.(acc, width, height, ctx) do
           {:ok, params} ->
             params
@@ -383,7 +383,7 @@ defmodule Vizi.Node do
         end
       end)
 
-    %Node{node | params: params, tasks: []}
+    %Node{node | params: params, updates: []}
   end
 
   # Event handling
