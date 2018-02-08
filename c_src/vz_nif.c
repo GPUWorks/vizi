@@ -363,7 +363,9 @@ static ERL_NIF_TERM vz_shutdown(ErlNifEnv* env, int argc, const ERL_NIF_TERM arg
 
   enif_mutex_lock(vz_view->lock);
   vz_view->busy = false;
+  vz_view->suspend = false;
   vz_view->shutdown = true;
+  enif_cond_signal(vz_view->suspended_cv);
   enif_cond_signal(vz_view->execute_cv);
   enif_mutex_unlock(vz_view->lock);
 

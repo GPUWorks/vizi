@@ -267,7 +267,7 @@ defmodule Vizi.View do
   @doc false
   def reinit_and_resume(server) do
     server = get_server(server)
-    GenServer.cast(server, :vz_reinit_and_resume)
+    GenServer.cast(server, :vz_resume_and_reinit)
     :sys.resume(server)
   end
 

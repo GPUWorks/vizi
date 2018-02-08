@@ -108,11 +108,11 @@ defmodule Vizi.View.Server do
     end
   end
 
-  def handle_cast(:vz_reinit_and_resume, view) do
+  def handle_cast(:vz_resume_and_reinit, view) do
     case view.suspend do
       :on ->
-        view.mod.terminate(:reload, view)
         NIF.resume(view.context)
+        view.mod.terminate(:reload, view)
 
         case handle_init(view.mod, %View{view | params: view.init_params}) do
           {:ok, view} ->
