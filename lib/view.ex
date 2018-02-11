@@ -10,7 +10,7 @@ defmodule Vizi.View do
             put_root: 2,
             update_root: 2,
             put_param: 3,
-            put_params: 2,
+            merge_params: 2,
             update_param: 4,
             update_param!: 3,
             send_event: 2,
@@ -288,8 +288,13 @@ defmodule Vizi.View do
     %View{view | params: Map.put(view.params, key, value)}
   end
 
-  @spec put_params(t, params) :: t
-  def put_params(view, params) do
+  @doc """
+  Merges the given params map with the view's params map.
+
+  See `Map.merge/2` for more info about its semantics.
+  """
+  @spec merge_params(t, params) :: t
+  def merge_params(view, params) do
     %View{view | params: Map.merge(view.params, params)}
   end
 
