@@ -150,23 +150,6 @@ extern ErlNifResourceType *vz_matrix_res;
 float* vz_alloc_matrix();
 float* vz_alloc_matrix_copy(const float *src);
 
-/*
-  Bitmap resource
-*/
-typedef struct VZbitmap {
-  unsigned char *buffer;
-  int width;
-  int height;
-  int pixel_size;
-  int byte_size;
-} VZbitmap;
-
-extern ErlNifResourceType *vz_bitmap_res;
-VZbitmap* vz_alloc_bm(int width, int height);
-VZbitmap* vz_alloc_bm_copy(const unsigned char *data, int width, int height);
-void vz_bm_dtor(ErlNifEnv *env, void *resource);
-bool vz_bm_get_slice(VZbitmap *bm, unsigned offset, unsigned length, unsigned char *data);
-bool vz_bm_put_slice(VZbitmap *bm, unsigned offset, unsigned length, const unsigned char *data);
 
 ERL_NIF_TERM vz_make_resource(ErlNifEnv* env, void* obj);
 ERL_NIF_TERM vz_make_managed_resource(ErlNifEnv* env, void* obj, VZview *vz_view);

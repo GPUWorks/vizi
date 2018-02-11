@@ -109,7 +109,7 @@ defmodule TestC2 do
 
     __MODULE__
     |> Node.new(opts)
-    |> Node.put_params(%{angle: 0, img: nil})
+    |> Node.merge_params(%{angle: 0, img: nil})
     |> Node.animate(
       tween,
       loop: true,
@@ -120,6 +120,8 @@ defmodule TestC2 do
   end
 
   def draw(params, width, height, ctx) do
+    _xform = current_transform(ctx)
+
     ctx
     |> global_alpha(0.03)
     |> begin_path()
@@ -191,7 +193,7 @@ defmodule T do
   use View
 
   def s do
-    Vizi.View.start(__MODULE__, %{}, width: 800, height: 600, pixel_ratio: 1.0)
+    Vizi.View.start(__MODULE__, %{}, width: 800, height: 600)
   end
 
   def init(view) do
@@ -230,36 +232,56 @@ end
 defmodule BM do
   use View
 
+
+  def start do
+    Vizi.View.start(__MODULE__, %{}, width: 650, height: 500, frame_rate: 20)
+  end
+
+  def init(view) do
+    {:ok, BM.Root.new(width: view.width, height: view.height)}
+  end
+
   defmodule Root do
     use Node
     use Canvas
+
+    @part_size 1920 * 1080
 
     def new(opts) do
       Node.new(__MODULE__, opts)
     end
 
     def init(node, ctx) do
-      bm = Bitmap.from_binary(ctx, :binary.copy(<<128,128,128,255>>, 300 * 300), 300, 300)
-      {:ok,
-       Node.put_params(node, %{
-         bm: bm
-       })}
-    end
+      use Tween
 
-    def draw(params, _width, _height, ctx) do
-      Bitmap.update_slice(params.bm, fn bin ->
-        for <<r::8, g::8, b::8, a::8 <- bin>>, into: <<>>, do: <<r + 1, g, b + 1, a>>
+      tween = Tween.move(%{}, %{color: 255}, in: sec(3))
+      {bin, width, height} = Image.file_to_binary("/home/zambal/Pictures/bg.jpg")
+      node = Node.merge_params(node, %{
+        bin: bin,
+        img: Image.from_binary(ctx, bin, width, height)
+      })
+      |> Node.animate(tween, loop: true, update: fn node ->
+        bin = 0..3
+        |> Enum.map(fn n ->
+          binary_part(node.params.bin, @part_size * n, @part_size)
+        end)
+        |> Task.async_stream(fn bin ->
+          for <<rgba::32 <- bin>>, into: <<>>, do: <<(rgba + 1)::32>>
+        end)
+        |> Enum.reduce("", fn {:ok, bin}, acc ->
+          acc <> bin
+        end)
+
+        Node.put_param(node, :bin, bin)
       end)
 
-      img = Image.from_bitmap(ctx, params.bm)
+      {:ok, node}
+    end
 
+    def draw(params, width, height, ctx) do
       ctx
-      |> global_composite_operation(:destination_atop)
-      |> draw_image(0, 50, 200, 200, img, alpha: 0.5, mode: :fill)
-      |> draw_image(100, 150, 200, 200, img, alpha: 0.5, mode: :fill)
-      |> global_composite_operation(:destination_over)
-      |> draw_image(350, 50, 200, 200, img, alpha: 0.5)
-      |> draw_image(450, 150, 200, 200, img, alpha: 0.5)
+      |> Image.update_from_binary(params.img, params.bin)
+      |> draw_image(0, 0, width, height, params.img)
     end
 
     """
@@ -282,11 +304,4 @@ defmodule BM do
     """
   end
 
-  def start do
-    Vizi.View.start(__MODULE__, %{}, width: 650, height: 500)
-  end
-
-  def init(view) do
-    {:ok, Root.new(width: view.width, height: view.height)}
-  end
 end

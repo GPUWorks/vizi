@@ -218,63 +218,6 @@ float* vz_alloc_matrix_copy(const float *src) {
   return dst;
 }
 
-ErlNifResourceType *vz_bitmap_res;
-VZbitmap* vz_alloc_bm(int width, int height) {
-  VZbitmap *bm;
-
-  if((bm = enif_alloc_resource(vz_bitmap_res, sizeof(VZbitmap))) == NULL)
-      return NULL;
-
-  bm->buffer = (unsigned char*)enif_alloc(width * height * 4 * sizeof(unsigned char));
-  bm->width = width;
-  bm->height = height;
-  bm->pixel_size = width * height;
-  bm->byte_size = bm->pixel_size * 4 * sizeof(unsigned char);
-
-  return bm;
-}
-
-VZbitmap* vz_alloc_bm_copy(const unsigned char *data, int width, int height) {
-  VZbitmap *bm;
-
-  if((bm = enif_alloc_resource(vz_bitmap_res, sizeof(VZbitmap))) == NULL)
-      return NULL;
-
-  bm->buffer = (unsigned char*)enif_alloc(width * height * 4);
-  bm->width = width;
-  bm->height = height;
-  bm->pixel_size = width * height;
-  bm->byte_size = bm->pixel_size * 4;
-
-  memcpy(bm->buffer, data, bm->byte_size);
-
-  return bm;
-}
-
-void vz_bm_dtor(ErlNifEnv *env, void *resource) {
-  VZbitmap *bm = (VZbitmap*)resource;
-  enif_free(bm->buffer);
-}
-
-bool vz_bm_get_slice(VZbitmap *bm, unsigned offset, unsigned length, unsigned char *data) {
-  if((offset + length) > bm->byte_size)
-    return false;
-
-  memcpy(data, bm->buffer + offset, length);
-
-  return true;
-}
-
-
-bool vz_bm_put_slice(VZbitmap *bm, unsigned offset, unsigned length, const unsigned char *data) {
-  if((offset + length) > bm->byte_size)
-    return false;
-
-  memcpy(bm->buffer + offset, data, length);
-
-  return true;
-}
-
 
 ERL_NIF_TERM vz_make_resource(ErlNifEnv* env, void* obj) {
   ERL_NIF_TERM res = enif_make_resource(env, obj);

@@ -30,7 +30,7 @@ defmodule SolarNode do
     moon_tween  = Tween.move %{}, %{moon_rotation: @tau}, in: sec(6)
 
     {:ok, node
-    |> Vizi.Node.put_params(%{
+    |> Vizi.Node.merge_params(%{
       sun: Image.from_file(ctx, "examples/Canvas_sun.png"),
       moon: Image.from_file(ctx, "examples/Canvas_moon.png"),
       earth: Image.from_file(ctx, "examples/Canvas_earth.png")

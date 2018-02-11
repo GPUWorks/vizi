@@ -36,23 +36,14 @@ defmodule Vizi.Canvas.Image do
   end
 
   @doc """
-  Creates image from specified bitmap resource.
-  Returns handle to the image.
+  Loads a file from disk and returns it as a binary.
   """
-  def from_bitmap(ctx, bitmap, flags \\ []) do
-    NIF.image_from_bitmap(ctx, bitmap, flags)
-    NIF.get_reply()
-  end
+  defdelegate file_to_binary(file_path), to: NIF, as: :image_file_to_binary
 
   @doc """
   Updates image data specified by image handle.
   """
   defdelegate update_from_binary(ctx, image, data), to: NIF, as: :image_update_from_binary
-
-  @doc """
-  Updates image data specified by image handle.
-  """
-  defdelegate update_from_bitmap(ctx, image, data), to: NIF, as: :image_update_from_bitmap
 
   @doc """
   Returns the dimensions of a created image int the form `{width, height}`.

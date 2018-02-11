@@ -1288,6 +1288,29 @@ static ERL_NIF_TERM vz_rad_to_deg(ErlNifEnv* env, int argc, const ERL_NIF_TERM a
   return BADARG;
 }
 
+static ERL_NIF_TERM vz_image_file_to_binary(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) {
+  int width, height, num_channels;
+  unsigned char *data;
+  char file_path[VZ_MAX_STRING_LENGTH];
+  ErlNifBinary bin;
+
+  if(!(argc == 1 &&
+       vz_copy_string(env, argv[0], file_path, VZ_MAX_STRING_LENGTH))) {
+    return BADARG;
+  }
+
+	stbi_set_unpremultiply_on_load(1);
+	stbi_convert_iphone_png_to_rgb(1);
+  if(!(data = stbi_load(file_path, &width, &height, &num_channels, 4)))
+    return BADARG;
+
+  enif_alloc_binary(width * height * 4, &bin);
+  memcpy(bin.data, data, width * height * 4);
+  stbi_image_free(data);
+
+  return enif_make_tuple3(env, enif_make_binary(env, &bin), enif_make_int(env, width), enif_make_int(env, height));
+}
+
 VZ_ASYNC_DECL(
   vz_image_from_file,
   {
@@ -1316,6 +1339,7 @@ VZ_ASYNC_DECL(
 VZ_ASYNC_DECL(
   vz_image_from_binary,
   {
+    ErlNifEnv *env;
     ErlNifBinary bin;
     int flags;
     int w;
@@ -1328,42 +1352,23 @@ VZ_ASYNC_DECL(
     handle = nvgCreateImageRGBA(ctx, args->w, args->h, args->flags, args->bin.data);
     if(handle == 0) VZ_HANDLER_SEND_BADARG;
     image = vz_alloc_image(vz_view, handle);
+    enif_free_env(args->env);
     VZ_HANDLER_SEND(vz_make_managed_resource(vz_view->msg_env, image, vz_view));
   },
   {
+    ERL_NIF_TERM bin_copy;
+
     if(!(argc == 5 &&
-        enif_inspect_binary(env, argv[1], &args->bin) &&
+        enif_is_binary(env, argv[1]) &&
         enif_get_int(env, argv[2], &args->w) &&
         enif_get_int(env, argv[3], &args->h) &&
         vz_handle_image_flags(env, argv[4], &args->flags))) {
       goto err;
     }
-    execute = true;
-  }
-);
+    args->env = enif_alloc_env();
+    bin_copy = enif_make_copy(args->env, argv[1]);
+    enif_inspect_binary(args->env, bin_copy, &args->bin);
 
-VZ_ASYNC_DECL(
-  vz_image_from_bitmap,
-  {
-    VZbitmap *bm;
-    int flags;
-  },
-  {
-    int handle;
-    VZimage *image;
-
-    handle = nvgCreateImageRGBA(ctx, args->bm->width, args->bm->height, args->flags, args->bm->buffer);
-    if(handle == 0) VZ_HANDLER_SEND_BADARG;
-    image = vz_alloc_image(vz_view, handle);
-
-    VZ_HANDLER_SEND(vz_make_managed_resource(vz_view->msg_env, image, vz_view));
-  },
-  {
-    if(!(argc == 3 &&
-        enif_get_resource(env, argv[1], vz_bitmap_res, (void**)&args->bm) &&
-        vz_handle_image_flags(env, argv[2], &args->flags))) {
-      goto err;
-    }
     execute = true;
   }
 );
@@ -1371,42 +1376,27 @@ VZ_ASYNC_DECL(
 VZ_ASYNC_DECL(
   vz_image_update_from_binary,
   {
+    ErlNifEnv *env;
     ErlNifBinary bin;
     int handle;
   },
   {
     nvgUpdateImage(ctx, args->handle, args->bin.data);
+    enif_free_env(args->env);
   },
   {
     VZimage *image;
+    ERL_NIF_TERM bin_copy;
 
     if(!(argc == 3 &&
         enif_get_resource(env, argv[1], vz_image_res, (void**)&image) &&
-        enif_inspect_binary(env, argv[2], &args->bin))) {
+        enif_is_binary(env, argv[2]))) {
       goto err;
     }
     args->handle = image->handle;
-  }
-);
-
-VZ_ASYNC_DECL(
-  vz_image_update_from_bitmap,
-  {
-    VZbitmap *bm;
-    int handle;
-  },
-  {
-    nvgUpdateImage(ctx, args->handle, args->bm->buffer);
-  },
-  {
-    VZimage *image;
-
-    if(!(argc == 3 &&
-        enif_get_resource(env, argv[1], vz_image_res, (void**)&image) &&
-        enif_get_resource(env, argv[2], vz_bitmap_res, (void**)&args->bm))) {
-      goto err;
-    }
-    args->handle = image->handle;
+    args->env = enif_alloc_env();
+    bin_copy = enif_make_copy(args->env, argv[2]);
+    enif_inspect_binary(args->env, bin_copy, &args->bin);
   }
 );
 
@@ -2384,127 +2374,6 @@ VZ_ASYNC_DECL(
   }
 );
 
-static ERL_NIF_TERM vz_bitmap_new(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) {
-  VZview *vz_view;
-  unsigned width, height;
-  VZbitmap *bm;
-
-  if(!(argc == 3 &&
-       enif_get_resource(env, argv[0], vz_view_res, (void**)&vz_view) &&
-       enif_get_uint(env, argv[1], &width) &&
-       enif_get_uint(env, argv[2], &height))) {
-    return BADARG;
-  }
-
-  bm = vz_alloc_bm(width, height);
-
-  return vz_make_managed_resource(env, bm, vz_view);
-}
-
-static ERL_NIF_TERM vz_bitmap_from_file(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) {
-  VZview *vz_view;
-  VZbitmap *bm;
-  int width, height, num_channels;
-  unsigned char *data;
-  char file_path[VZ_MAX_STRING_LENGTH];
-
-  if(!(argc == 2 &&
-       enif_get_resource(env, argv[0], vz_view_res, (void**)&vz_view) &&
-       vz_copy_string(env, argv[1], file_path, VZ_MAX_STRING_LENGTH))) {
-    return BADARG;
-  }
-
-	stbi_set_unpremultiply_on_load(1);
-	stbi_convert_iphone_png_to_rgb(1);
-  if(!(data = stbi_load(file_path, &width, &height, &num_channels, 4)))
-    return BADARG;
-
-  bm = vz_alloc_bm_copy(data, width, height);
-  stbi_image_free(data);
-
-  return vz_make_managed_resource(env, bm, vz_view);
-}
-
-static ERL_NIF_TERM vz_bitmap_from_binary(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) {
-  VZview *vz_view;
-  VZbitmap *bm;
-  int width, height;
-  ErlNifBinary bin;
-
-  if(!(argc == 4 &&
-       enif_get_resource(env, argv[0], vz_view_res, (void**)&vz_view) &&
-       enif_inspect_binary(env, argv[1], &bin) &&
-       enif_get_int(env, argv[2], &width) &&
-       enif_get_int(env, argv[3], &height))) {
-    return BADARG;
-  }
-
-  if((bin.size & 3) != 0)
-    return BADARG;
-
-  bm = vz_alloc_bm_copy(bin.data, width, height);
-
-  return vz_make_managed_resource(env, bm, vz_view);
-}
-
-static ERL_NIF_TERM vz_bitmap_size(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) {
-  VZbitmap *bm;
-
-  if(!(argc == 1 &&
-       enif_get_resource(env, argv[0], vz_bitmap_res, (void**)&bm))) {
-    return BADARG;
-  }
-
-  return enif_make_tuple2(env, enif_make_int(env, bm->width), enif_make_int(env, bm->height));
-}
-
-static ERL_NIF_TERM vz_bitmap_get_slice(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) {
-  VZbitmap *bm;
-  unsigned offset, length;
-  ErlNifBinary bin;
-
-  if(!(argc == 3 &&
-       enif_get_resource(env, argv[0], vz_bitmap_res, (void**)&bm) &&
-       enif_get_uint(env, argv[1], &offset) &&
-       enif_get_uint(env, argv[2], &length))) {
-    return BADARG;
-  }
-
-  offset *= 4;
-
-  if(length)
-    length *= 4;
-  else
-    length = bm->byte_size - offset;
-
-  if(!(enif_alloc_binary(length, &bin) &&
-     vz_bm_get_slice(bm, offset, length, bin.data)))
-    return BADARG;
-
-  return enif_make_binary(env, &bin);
-}
-
-static ERL_NIF_TERM vz_bitmap_put_slice(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) {
-  VZbitmap *bm;
-  unsigned offset;
-  ErlNifBinary bin;
-
-  if(!(argc == 3 &&
-       enif_get_resource(env, argv[0], vz_bitmap_res, (void**)&bm) &&
-       enif_get_uint(env, argv[1], &offset) &&
-       enif_inspect_binary(env, argv[2], &bin))) {
-    return BADARG;
-  }
-
-  offset *= 4;
-
-  if(!((bin.size & 3) == 0 &&
-       vz_bm_put_slice(bm, offset, bin.size, (unsigned char*)bin.data)))
-    return BADARG;
-
-  return argv[0];
-}
-
 
 
 /*
@@ -2524,7 +2393,6 @@ static int vz_load(ErlNifEnv* env, void** priv_data, ERL_NIF_TERM load_info)
   vz_font_res = enif_open_resource_type(env, NULL, "vz_font_res", NULL, flags, NULL);
   vz_paint_res = enif_open_resource_type(env, NULL, "vz_paint_res", NULL, flags, NULL);
   vz_matrix_res = enif_open_resource_type(env, NULL, "vz_matrix_res", NULL, flags, NULL);
-  vz_bitmap_res = enif_open_resource_type(env, NULL, "vz_bitmap_res", vz_bm_dtor, flags, NULL);
 
   vz_make_atoms(env);
 
@@ -2592,11 +2460,10 @@ static ErlNifFunc nif_funcs[] =
     {"list_to_matrix", 1, vz_list_to_matrix},
     {"deg_to_rad", 1, vz_deg_to_rad},
     {"rad_to_deg", 1, vz_rad_to_deg},
+    {"image_file_to_binary", 1, vz_image_file_to_binary},
     {"image_from_file", 3, vz_image_from_file},
     {"image_from_binary", 5, vz_image_from_binary},
-    {"image_from_bitmap", 3, vz_image_from_bitmap},
     {"image_update_from_binary", 3, vz_image_update_from_binary},
-    {"image_update_from_bitmap", 3, vz_image_update_from_bitmap},
     {"image_size", 2, vz_image_size},
     {"image_delete", 2, vz_image_delete},
     {"linear_gradient", 7, vz_linear_gradient},
@@ -2637,13 +2504,7 @@ static ErlNifFunc nif_funcs[] =
     {"text_box_bounds", 5, vz_text_box_bounds},
     {"text_glyph_positions", 4, vz_text_glyph_positions},
     {"text_metrics", 1, vz_text_metrics},
-    {"text_break_lines", 3, vz_text_break_lines},
-    {"bitmap_new", 3, vz_bitmap_new},
-    {"bitmap_from_file", 2, vz_bitmap_from_file},
-    {"bitmap_from_binary", 4, vz_bitmap_from_binary},
-    {"bitmap_size", 1, vz_bitmap_size},
-    {"bitmap_get_slice", 3, vz_bitmap_get_slice},
-    {"bitmap_put_slice", 3, vz_bitmap_put_slice}
+    {"text_break_lines", 3, vz_text_break_lines}
 };
 
 ERL_NIF_INIT(Elixir.Vizi.NIF, nif_funcs, &vz_load, NULL, NULL, &vz_unload)

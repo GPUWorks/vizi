@@ -61,12 +61,12 @@ defmodule Vizi.Canvas do
   Calling `use Vizi.Canvas` is equal to
 
       import Vizi.Canvasa
-      alias Vizi.Canvas.{Bitmap, Color, Image, Paint, Text, Transform}
+      alias Vizi.Canvas.{Color, Image, Paint, Text, Transform}
   """
   defmacro __using__(_) do
     quote do
       import unquote(__MODULE__)
-      alias unquote(__MODULE__).{Bitmap, Color, Image, Paint, Text, Transform}
+      alias unquote(__MODULE__).{Color, Image, Paint, Text, Transform}
     end
   end
 

@@ -114,16 +114,14 @@ defmodule Vizi.NIF do
 
   def rad_to_deg(_rad), do: :erlang.nif_error(:vz_nif_lib_not_loaded)
 
+  def image_file_to_binary(_file_path), do: :erlang.nif_error(:vz_nif_lib_not_loaded)
+
   def image_from_file(_ctx, _file_path, _flags), do: :erlang.nif_error(:vz_nif_lib_not_loaded)
 
   def image_from_binary(_ctx, _data, _w, _h, _flags),
     do: :erlang.nif_error(:vz_nif_lib_not_loaded)
 
-  def image_from_bitmap(_ctx, _bitmap, _flags), do: :erlang.nif_error(:vz_nif_lib_not_loaded)
-
   def image_update_from_binary(_ctx, _image, _data), do: :erlang.nif_error(:vz_nif_lib_not_loaded)
-
-  def image_update_from_bitmap(_ctx, _image, _bm), do: :erlang.nif_error(:vz_nif_lib_not_loaded)
 
   def image_size(_ctx, _image), do: :erlang.nif_error(:vz_nif_lib_not_loaded)
 
@@ -225,18 +223,6 @@ defmodule Vizi.NIF do
 
   def text_break_lines(_ctx, _break_row_width, _string),
     do: :erlang.nif_error(:vz_nif_lib_not_loaded)
-
-  def bitmap_new(_ctx, _width, _height), do: :erlang.nif_error(:vz_nif_lib_not_loaded)
-
-  def bitmap_from_file(_ctx, _file_path), do: :erlang.nif_error(:vz_nif_lib_not_loaded)
-
-  def bitmap_from_binary(_ctx, _bin, _w, _h), do: :erlang.nif_error(:vz_nif_lib_not_loaded)
-
-  def bitmap_size(_bm), do: :erlang.nif_error(:vz_nif_lib_not_loaded)
-
-  def bitmap_get_slice(_bm, _offset, _length), do: :erlang.nif_error(:vz_nif_lib_not_loaded)
-
-  def bitmap_put_slice(_bm, _offset, _bin), do: :erlang.nif_error(:vz_nif_lib_not_loaded)
 
   def get_reply do
     receive do
