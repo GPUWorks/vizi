@@ -97,12 +97,19 @@ defmodule Vizi.Node do
             when new_el: Vizi.Node.t()
 
   @doc """
-  Invoked after `Vizi.View.redraw/1` has been called when `redraw_mode` is `:manual`, or automatically when `redraw_mode` is `:interval`.
+  Invoked after `Vizi.View.redraw/1` has been called when `redraw_mode` is `:manual`, or after agiven interval has passed when `redraw_mode` is `:interval`.
 
   """
   @callback draw(params :: params, width :: number, height :: number, ctx :: Vizi.View.context()) ::
               term
 
+  @doc """
+  Invoked when an event is send to the view.
+
+  The event can be an input event like a mouse button event or a custom event.
+  When the callback returns `:cont` or `{:cont, new_view}`, the custom event will be propagated the next node.
+  When the callback returns `:done` or `{:done, new_view}` event propagation will stop and no other node will recieve the event anymore.
+  """
   @callback handle_event(event :: struct, node :: Vizi.Node.t()) ::
               :cont
               | :done
@@ -136,6 +143,11 @@ defmodule Vizi.Node do
 
   # Public interface
 
+  @doc """
+  Creates a new node.
+
+  The first argument is a module that has the Node behaviour implemented.
+  """
   @spec new(mod :: module, opts :: options) :: t
   def new(mod, opts \\ []) do
     %Node{
@@ -261,8 +273,8 @@ defmodule Vizi.Node do
     %Node{node | params: Map.put(params, key, value)}
   end
 
-  @spec put_params(node :: t, params :: params) :: t
-  def put_params(%Node{} = node, params) do
+  @spec merge_params(node :: t, params :: params) :: t
+  def merge_params(%Node{} = node, params) do
     %Node{node | params: Map.merge(node.params, params)}
   end
 
