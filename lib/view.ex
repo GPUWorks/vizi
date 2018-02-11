@@ -9,6 +9,8 @@ defmodule Vizi.View do
   @compile {:inline,
             put_root: 2,
             update_root: 2,
+            get_param: 2,
+            get_param: 3,
             put_param: 3,
             merge_params: 2,
             update_param: 4,
@@ -58,17 +60,40 @@ defmodule Vizi.View do
           suspend: suspend_state
         }
 
+  @doc """
+  The view's init callback function is invoked after a windows has been succesfully created and the background thread is initialized,
+  but before any drawing or events are handled. `start_link/3` or `start/3` will block until it returns.
+
+  It is primarily meant to setup the view's root node.
+
+  See `GenServer.init/1` for more info about the `:ignore` and `{:stop, reason}` return values.
+  """
   @callback init(t) ::
               {:ok, Node.t}
               | :ignore
               | {:stop, reason :: term}
 
+  @doc """
+  Invoked when an event is send to the view.
+
+  The event can be an input event like a mouse button event or a custom event.
+
+  When the callback returns `:cont` or `{:cont, new_view}`, the custom event will be propagated through all nodes,
+  starting at the root node, until a node returns `:done` or `{:done, new_node}`.
+
+  When the callback returns `:done` or `{:done, new_view}` event propagation will stop and no node will recieve the event.
+  """
   @callback handle_event(event :: term, t) ::
               :cont
               | :done
               | {:cont, t}
               | {:done, t}
 
+  @doc """
+  Invoked to handle synchronous `call/3` messages.
+
+  See `GenServer.handle_call/3` for more info.
+  """
   @callback handle_call(request :: term, from :: term, t) ::
               {:reply, reply, t}
               | {:reply, reply, t, timeout | :hibernate}
@@ -78,19 +103,42 @@ defmodule Vizi.View do
               | {:stop, reason, t}
             when reply: term, reason: term
 
+  @doc """
+  Invoked to handle asynchronous cast/2 messages.
+
+  See `GenServer.handle_cast/2` for more info.
+  """
   @callback handle_cast(request :: term, t) ::
               {:noreply, t}
               | {:noreply, t, timeout | :hibernate}
               | {:stop, reason :: term, t}
 
+  @doc """
+  Invoked to handle all other messages.
+
+  See `GenServer.handle_info/2` for more info.
+  """
   @callback handle_info(msg :: :timeout | term, t) ::
               {:noreply, t}
               | {:noreply, t, timeout | :hibernate}
               | {:stop, reason :: term, t}
 
+  @doc """
+  Invoked when the view is about to shutdown. It should do any cleanup required.
+
+  See `GenServer.terminate/2` for more info.
+  """
   @callback terminate(reason, t) :: term
             when reason: :normal | :shutdown | {:shutdown, term} | term
 
+  @doc """
+  Invoked to change the state of the GenServer when a different version of a module is loaded (hot code swapping)
+  and the state’s term structure should be changed.
+
+  See 'GenServer.code_change/3' for more info.
+
+  Note that when using `Vizi.reload/0` or the live reload feature, this callback will NOT be invoked.
+  """
   @callback code_change(old_vsn, t, extra :: term) ::
               {:ok, t}
               | {:error, reason :: term}
@@ -200,15 +248,20 @@ defmodule Vizi.View do
 
   The first argument is the view's callback module. See `Vizi.View` for more info about its behaviour and callbacks.
 
-  The second argument is an optional params map that can be retrieved in every Vizi.View callback functions.
+  The optional second argument is an params map that can be retrieved in all Vizi.View callback functions.
 
   The last argument are the view's options, mostly used in the view's initalize phase. The following options are available:
 
-  * `:width` - The view's width in pixels (default: 800)
-  * `:height` - The view's height in pixels (default: 600)
-  * `:pixel_ratio` - Device pixel ration allows to control the rendering on Hi-DPI devices.
-
-
+  * `:title` - the view's window title (default: `""`)
+  * `:width` - the view's width in pixels (default: `800`)
+  * `:height` - the view's height in pixels (default: `600`)
+  * `:resizable` - make the view's windows resizable (default: `false`)
+  * `:min_width` - the view's window minimum width if resizable is `true` (default: `0`)
+  * `:min_height` - the view's window minimum height if resizable is `true` (default: `0`)
+  * `:redraw_mode` - can be either `:manual`, or `:interval` (default: `:interval`)
+  * `:frame_rate` - sets how many times per second the view will be redrawn when the redraw mode is `:interval` (default: `:vsync`)
+  * `:pixel_ratio` - device pixel ration allows to control the rendering on Hi-DPI devices (default: `1.0`)
+  * `:background_color` - sets the view's background color (default: `rgba(0, 0, 0, 0)`)
   """
   @spec start(module, params, options) :: GenServer.on_start()
   def start(mod, params, opts \\ []) do
@@ -216,22 +269,34 @@ defmodule Vizi.View do
     GenServer.start(View.Server, {mod, params, view_opts}, server_opts)
   end
 
+  @doc """
+  Starts a new view and link it to the calling process. See `Vizi.View.start/3` for more info about its arguments.
+  """
   @spec start_link(module, params, options) :: GenServer.on_start()
   def start_link(mod, params, opts \\ []) do
     {server_opts, view_opts} = Keyword.split(opts, [:name, :timeout, :debug, :spawn_opt])
     GenServer.start_link(View.Server, {mod, params, view_opts}, server_opts)
   end
 
+  @doc """
+  Send a message to the view process and wait for a reply. See `GenServer.call/3` for more info.
+  """
   @spec call(server, request :: term, timeout :: integer) :: term
   def call(server, request, timeout \\ 5000) do
     GenServer.call(get_server(server), {:vz_view_call, request}, timeout)
   end
 
+  @doc """
+  Send a message to the view process. See `GenServer.cast/2` for more info.
+  """
   @spec cast(server, request :: term) :: :ok
   def cast(server, request) do
     GenServer.cast(get_server(server), {:vz_view_cast, request})
   end
 
+  @doc """
+  Send a custom event to the view process. If not handled by the view, the event will be passed to all the view's nodes.
+  """
   @spec send_event(server, type :: atom, params :: term) :: :ok
   def send_event(server, type, params) do
     {mega, sec, micro} = :os.timestamp()
@@ -239,11 +304,17 @@ defmodule Vizi.View do
     GenServer.cast(get_server(server), %Events.Custom{type: type, params: params, time: time})
   end
 
+  @doc """
+  Redraw all nodes in a view. This function should normally only be used when the view's redraw mode is set to manual.
+  """
   @spec redraw(server) :: :ok
   def redraw(server) do
     GenServer.cast(get_server(server), :vz_redraw)
   end
 
+  @doc """
+  Shutdown a view. Shutting down will close the view's window and terminate the process.
+  """
   @spec shutdown(server) :: :ok
   def shutdown(server) do
     GenServer.cast(get_server(server), :vz_shutdown)
@@ -273,16 +344,52 @@ defmodule Vizi.View do
 
   # View interface
 
+  @doc """
+  Makes the given node the new root node of the view
+  """
   @spec put_root(t, Node.t()) :: t
   def put_root(view, node) do
     %View{view | root: node}
   end
 
+  @doc """
+  Updates the view's root node.
+
+  ## Examples
+      fun = &Vizi.Node.put_param(&1, :bg_color, %Vizi.Color{r: 1.0})
+      Vizi.View.update_root(view, fun)
+
+  """
   @spec update_root(t, (Node.t() | nil -> Node.t())) :: t
   def update_root(view, fun) do
     %View{view | root: fun.(view.root)}
   end
 
+  @doc """
+  Gets the value for a specific key in the view's params map.
+
+  ## Examples
+
+      Vizi.View.get_param(view, :bg_color)
+      #=> %Vizi.Color{r: 1.0, g: 0.0, b: 0.0, a: 1.0}
+
+      Vizi.View.get_param(view, :undefined_key, 1.0)
+      #=> 1.0
+
+  """
+  @spec get_param(t, key :: atom, default :: term) :: term
+  def get_param(view, key, default \\ nil) do
+    Map.get(view.params, key, default)
+  end
+
+  @doc """
+  Puts the given `value` under `key` in the view's params map.
+
+  ## Examples
+
+      Vizi.View.put_param(view, :bg_color, %Vizi.Color{r: 1.0})
+
+  """
   @spec put_param(t, key :: atom, value :: term) :: t
   def put_param(view, key, value) do
     %View{view | params: Map.put(view.params, key, value)}
@@ -298,16 +405,43 @@ defmodule Vizi.View do
     %View{view | params: Map.merge(view.params, params)}
   end
 
+  @doc """
+  Updates the key in the view's params map with the given function.
+
+  See `Map.update/4` for more info about its semantics.
+  """
   @spec update_param(t, key :: atom, initial :: term, fun :: (term -> term)) :: t
   def update_param(view, key, initial, fun) do
     %View{view | params: Map.update(view.params, key, initial, fun)}
   end
 
+  @doc """
+  Updates key with the given function.
+
+  See `Map.update!/3` for more info about its semantics.
+  """
   @spec update_param!(t, key :: atom, fun :: (term -> term)) :: t
   def update_param!(view, key, fun) do
     %View{view | params: Map.update!(view.params, key, fun)}
   end
 
+  @doc """
+  Updates multiple keys with a function.
+
+  ## Examples
+
+      Vizi.View.put_param(view, :a, 1)
+      Vizi.View.put_param(view, :b, 2)
+
+      Vizi.View.update_params!(view, a: &(&1 + 1), b: &(&1 * 2))
+
+      Vizi.View.get_param(view, :a)
+      #=> 2
+
+      Vizi.View.get_param(view, :b)
+      #=> 4
+
+  """
   @spec update_params!(t, updates) :: t
   def update_params!(view, updates) do
     params =
@@ -318,11 +452,18 @@ defmodule Vizi.View do
     %View{view | params: params}
   end
 
+
+  @doc """
+  Sends a custom event. This function is meant to be called from view or node callback functions.
+  """
   @spec send_event(type :: atom, params :: term) :: :ok
   def send_event(type, params) do
     View.send_event(self(), type, params)
   end
 
+  @doc """
+  Redraws the view. This function is meant to be called from view or node callback functions.
+  """
   @spec redraw() :: :ok
   def redraw() do
     GenServer.cast(self(), :vz_redraw)
