@@ -14,20 +14,6 @@
 #include <time.h>
 #include <errno.h>
 
-#ifdef VZ_LOG_TIMING
-// Lifted from: https://gist.github.com/diabloneo/9619917
-void timespec_diff(struct timespec *start, struct timespec *stop, struct timespec *result) {
-    if ((stop->tv_nsec - start->tv_nsec) < 0) {
-        result->tv_sec = stop->tv_sec - start->tv_sec - 1;
-        result->tv_nsec = stop->tv_nsec - start->tv_nsec + 1000000000;
-    } else {
-        result->tv_sec = stop->tv_sec - start->tv_sec;
-        result->tv_nsec = stop->tv_nsec - start->tv_nsec;
-    }
-
-    return;
-}
-#endif
 
 #if defined(VZ_PLATFORM_X11) || defined(VZ_PLATFORM_MACOS)
 static inline void set_next_time_point(struct timespec* ts, int frame_rate) {
@@ -154,13 +140,6 @@ void* vz_view_thread(void *p) {
   VZview *vz_view = (VZview*) p;
   PuglView *view;
 
-#ifdef VZ_LOG_TIMING
-  struct timespec ts1, ts2, tsdiff;
-  int num_frames = 120;
-  double_array *timings = double_array_new(num_frames);
-  double avg;
-#endif
-
   enif_mutex_lock(vz_view->lock);
 
   view = puglInit(NULL, NULL);
@@ -200,34 +179,17 @@ void* vz_view_thread(void *p) {
   enif_send(NULL, &vz_view->view_pid, NULL, ATOM_INITIALIZED);
 
   while(!vz_view->shutdown) {
-#ifdef VZ_LOG_TIMING
-	  clock_gettime(CLOCK_MONOTONIC, &ts1);
-#endif
+    while(vz_view->suspend) {
+      enif_send(NULL, &vz_view->view_pid, NULL, ATOM_SUSPENDED);
+      enif_cond_wait(vz_view->suspended_cv, vz_view->lock);
+    }
 
     puglProcessEvents(view);
     vz_send_events(vz_view);
 
-    if(vz_view->suspend) {
-      enif_send(NULL, &vz_view->view_pid, NULL, ATOM_SUSPENDED);
-      enif_cond_wait(vz_view->suspended_cv, vz_view->lock);
-    }
-    else if (vz_view->redraw_mode == VZ_INTERVAL)
+    if (vz_view->redraw_mode == VZ_INTERVAL)
       puglPostRedisplay(view);
 
-#ifdef VZ_LOG_TIMING
-    clock_gettime(CLOCK_MONOTONIC, &ts2);
-    timespec_diff(&ts1, &ts2, &tsdiff);
-    double_array_push(timings, tsdiff.tv_nsec / 1000000.0);
-    if(timings->end_pos == num_frames) {
-      avg = 0.0;
-      for(unsigned i = 0; i < num_frames; ++i) {
-        avg += timings->array[i];
-      }
-      double_array_clear(timings);
-      avg /= (double)num_frames;
-      printf("average of %d frames: %.3f ms\r\n", num_frames, avg);
-    }
-#endif
     vz_release_managed_resources(vz_view);
     if(!vz_view->vsync) vz_wait_for_frame(vz_view, view, &ts);
   }
@@ -238,9 +200,6 @@ shutdown:
   if (view)
     puglDestroy(view);
 
-#ifdef VZ_LOG_TIMING
-  double_array_free(timings);
-#endif
 
   enif_mutex_unlock(vz_view->lock);
   enif_send(NULL, &vz_view->view_pid, NULL, ATOM_SHUTDOWN);
